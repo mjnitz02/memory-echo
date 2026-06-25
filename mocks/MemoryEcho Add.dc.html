@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+<template id="__bundler_thumbnail" data-bg-color="#1C1C1E">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <!-- device silhouette -->
+    <rect x="430" y="60" width="340" height="680" rx="60" fill="#000" stroke="#2C2C2E" stroke-width="6"/>
+    <!-- dimmed bands at top -->
+    <rect x="450" y="90" width="300" height="90" rx="8" fill="#0E3FA8" opacity=".5"/>
+    <rect x="450" y="182" width="300" height="50" rx="0" fill="#1E63D6" opacity=".5"/>
+    <rect x="450" y="234" width="300" height="50" rx="0" fill="#18B6D8" opacity=".5"/>
+    <!-- dark sheet -->
+    <rect x="430" y="290" width="340" height="450" rx="28" fill="#1C1C1E"/>
+    <!-- grabber -->
+    <rect x="580" y="308" width="40" height="5" rx="3" fill="rgba(235,235,245,.3)"/>
+    <!-- field -->
+    <rect x="450" y="326" width="300" height="58" rx="14" fill="#1657C7" opacity=".22"/>
+    <rect x="458" y="338" width="36" height="36" rx="10" fill="#1E63D6"/>
+    <!-- phone icon -->
+    <path d="M472 348 c0-.5.4-1 1-1h2c.6 0 1 .5 1 1s-.2 1.5-.2 1.5L474 352l3 3-1 1.8s.5-.2 1.5-.2c.5 0 1 .4 1 1v2c0 .6-.5 1-1 1-3.3 0-7-3.5-7-7 0-.5.4-1 1-1Z" fill="#fff" stroke="none"/>
+    <!-- text line -->
+    <rect x="504" y="347" width="130" height="10" rx="4" fill="rgba(255,255,255,.8)"/>
+    <!-- effort -->
+    <rect x="450" y="398" width="140" height="38" rx="12" fill="#1657C7"/>
+    <rect x="600" y="398" width="140" height="38" rx="12" fill="rgba(118,118,128,.24)"/>
+    <!-- when -->
+    <rect x="450" y="452" width="88" height="36" rx="11" fill="#1E63D6"/>
+    <rect x="546" y="452" width="88" height="36" rx="11" fill="rgba(118,118,128,.24)"/>
+    <rect x="642" y="452" width="98" height="36" rx="11" fill="rgba(118,118,128,.24)"/>
+    <!-- add button -->
+    <rect x="450" y="504" width="300" height="50" rx="14" fill="#1657C7"/>
+  </svg>
+</template>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:#E9E7E3;
+    font-family:-apple-system,"SF Pro Text",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    display:flex; align-items:center; justify-content:center;
+  }
+  @keyframes echoCaret{ 0%,49%{ opacity:1; } 50%,100%{ opacity:0; } }
+  @keyframes echoSheetUp{ from{ transform:translateY(46px); opacity:.4; } to{ transform:translateY(0); opacity:1; } }
+</style>
+</helmet>
+
+<div style="padding:40px 0;">
+<x-import component="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" keyboard="{{ true }}" hint-size="402px,874px">
+
+  <div style="position:relative; height:100%;">
+
+    <!-- dimmed list backdrop -->
+    <div style="position:absolute; inset:0; z-index:0; display:flex; flex-direction:column;">
+      <div style="height:118px; background:#000;"></div>
+      <div style="flex:1 1 0; background:linear-gradient(105deg,#0E3FA8,#1E63D6);"></div>
+      <div style="flex:1 1 0; background:linear-gradient(105deg,#048BB0,#18B6D8);"></div>
+      <div style="flex:1 1 0; background:linear-gradient(105deg,#0E9C84,#1CC0A0);"></div>
+      <div style="flex:1 1 0; background:linear-gradient(105deg,#DB4B0B,#FB7414);"></div>
+      <div style="flex:1 1 0; background:linear-gradient(105deg,#EC8A07,#FBA628);"></div>
+      <div style="flex:1 1 0; background:linear-gradient(105deg,#2F9E54,#57C06B);"></div>
+    </div>
+    <!-- scrim -->
+    <div style="position:absolute; inset:0; z-index:1; background:rgba(10,10,14,.5);"></div>
+
+    <!-- the add sheet -->
+    <div style="position:absolute; left:0; right:0; bottom:0; z-index:2; isolation:isolate; background:#1C1C1E; border-radius:30px 30px 0 0; box-shadow:0 -18px 50px rgba(0,0,0,.5); padding:12px 22px 26px; animation:echoSheetUp .42s cubic-bezier(.2,.7,.2,1);">
+
+      <!-- grabber -->
+      <div style="width:38px; height:5px; border-radius:99px; background:rgba(235,235,245,.3); margin:0 auto 20px;"></div>
+
+      <!-- hero field -->
+      <div style="display:flex; align-items:center; gap:14px; height:68px; padding:0 14px 0 12px; border-radius:18px; background:{{ fieldBg }}; border:1.5px solid {{ fieldBorder }};">
+        <div style="flex-shrink:0; width:46px; height:46px; border-radius:13px; display:flex; align-items:center; justify-content:center; background:{{ accentGrad }}; box-shadow:0 2px 8px {{ accentShadow }};">{{ iconEl }}</div>
+        <div style="flex:1; display:flex; align-items:center; min-width:0;">
+          <span style="font-size:24px; font-weight:680; letter-spacing:-.5px; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ text }}</span>
+          <span style="display:inline-block; width:2.5px; height:27px; margin-left:2px; border-radius:2px; background:{{ accentSolid }}; animation:echoCaret 1.1s step-end infinite; flex-shrink:0;"></span>
+        </div>
+      </div>
+
+      <!-- EFFORT -->
+      <div style="font-size:12.5px; font-weight:600; letter-spacing:.3px; text-transform:uppercase; color:rgba(235,235,245,.6); margin:22px 4px 10px;">Effort</div>
+      <div style="display:flex; gap:10px;">
+        <div onClick="{{ setQuick }}" style="flex:1; height:46px; border-radius:14px; display:flex; align-items:center; justify-content:center; gap:7px; font-size:16px; font-weight:640; letter-spacing:-.2px; cursor:pointer; user-select:none; color:{{ quickText }}; background:{{ quickBg }}; border:1.5px solid {{ quickBorder }}; box-shadow:{{ quickShadow }};">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 L4.5 13.5 H11 L11 22 L19.5 10.5 H13 Z"/></svg>
+          Quick
+        </div>
+        <div onClick="{{ setLong }}" style="flex:1; height:46px; border-radius:14px; display:flex; align-items:center; justify-content:center; gap:7px; font-size:16px; font-weight:640; letter-spacing:-.2px; cursor:pointer; user-select:none; color:{{ longText }}; background:{{ longBg }}; border:1.5px solid {{ longBorder }}; box-shadow:{{ longShadow }};">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7 V12 L15.5 14"/></svg>
+          Long
+        </div>
+      </div>
+
+      <!-- HORIZON -->
+      <div style="font-size:12.5px; font-weight:600; letter-spacing:.3px; text-transform:uppercase; color:rgba(235,235,245,.6); margin:20px 4px 10px;">When</div>
+      <div style="display:flex; gap:8px;">
+        <div onClick="{{ setToday }}" style="flex:1; height:44px; border-radius:13px; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:620; letter-spacing:-.2px; cursor:pointer; user-select:none; color:{{ todayText }}; background:{{ todayBg }};">Today</div>
+        <div onClick="{{ setTomorrow }}" style="flex:1; height:44px; border-radius:13px; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:620; letter-spacing:-.2px; cursor:pointer; user-select:none; color:{{ tomorrowText }}; background:{{ tomorrowBg }};">Tomorrow</div>
+        <div onClick="{{ setLater }}" style="flex:1; height:44px; border-radius:13px; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:620; letter-spacing:-.2px; cursor:pointer; user-select:none; color:{{ laterText }}; background:{{ laterBg }};">Later this week</div>
+      </div>
+
+      <!-- ADD -->
+      <div style="margin-top:24px; height:56px; border-radius:17px; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; user-select:none; background:{{ accentGrad }}; box-shadow:0 8px 22px {{ accentShadow }}; color:#fff; font-size:18px; font-weight:700; letter-spacing:-.3px;">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5 V19 M5 12 H19"/></svg>
+        Add
+      </div>
+
+    </div>
+  </div>
+
+</x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { text: 'Call the dentist', effort: 'quick', horizon: 'today' };
+
+  GRAD = {
+    quick: { today:['#1657C7','#2A78E6'], tomorrow:['#048BB0','#18B6D8'], later:['#0E9C84','#1CC0A0'] },
+    long:  { today:['#DB4B0B','#FB7414'], tomorrow:['#EC8A07','#FBA628'], later:['#D99A22','#F2C04A'] },
+  };
+
+  iconFor(text) {
+    const t = (text || '').toLowerCase();
+    const has = (...w) => w.some(x => t.includes(x));
+    const svg = (paths) => React.createElement('svg', {
+      width:24, height:24, viewBox:'0 0 24 24', fill:'none', stroke:'#fff',
+      strokeWidth:2.1, strokeLinecap:'round', strokeLinejoin:'round',
+      style:{ filter:'drop-shadow(0 1px 1.5px rgba(0,0,0,.2))' },
+    }, paths.map((d,i) => React.createElement('path', { key:i, d })));
+    const shapes = (els) => React.createElement('svg', {
+      width:24, height:24, viewBox:'0 0 24 24', fill:'none', stroke:'#fff',
+      strokeWidth:2.1, strokeLinecap:'round', strokeLinejoin:'round',
+      style:{ filter:'drop-shadow(0 1px 1.5px rgba(0,0,0,.2))' },
+    }, els);
+    if (has('call','phone','dentist','ring','dial')) return svg(['M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92Z']);
+    if (has('pay','bill','rent','card','invoice','tax')) return shapes([
+      React.createElement('rect',{key:0,x:2,y:5,width:20,height:14,rx:2.5}),
+      React.createElement('path',{key:1,d:'M2 10h20'})]);
+    if (has('buy','groceries','grocery','shop','cart','store','milk')) return shapes([
+      React.createElement('circle',{key:0,cx:9,cy:21,r:1.4}),
+      React.createElement('circle',{key:1,cx:19,cy:21,r:1.4}),
+      React.createElement('path',{key:2,d:'M1.5 2h3l2.5 13.2a1.8 1.8 0 0 0 1.8 1.5h8.6a1.8 1.8 0 0 0 1.8-1.4L22.5 7H6'})]);
+    if (has('fix','repair','latch','gate','mend','tighten','wrench')) return svg(['M14.7 6.3a4 4 0 0 0-5.4 5.4L3.3 17.7a1.5 1.5 0 0 0 0 2.1l.9.9a1.5 1.5 0 0 0 2.1 0l6-6a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.1-.6-.6-2.1 2.5-2.5Z']);
+    if (has('clean','garage','tidy','declutter','sort','sparkle')) return svg(['M12 2.5 L13.7 8.3 L19.5 10 L13.7 11.7 L12 17.5 L10.3 11.7 L4.5 10 L10.3 8.3 Z','M18.5 16 L19.2 18.2 L21.4 18.9 L19.2 19.6 L18.5 21.8 L17.8 19.6 L15.6 18.9 L17.8 18.2 Z']);
+    if (has('wash','car','drive','vehicle')) return shapes([
+      React.createElement('path',{key:0,d:'M5 11l1.6-4.6A2 2 0 0 1 8.5 5h7a2 2 0 0 1 1.9 1.4L19 11'}),
+      React.createElement('path',{key:1,d:'M3 16v-2.2a2 2 0 0 1 1.3-1.9L5 11h14l.7.9a2 2 0 0 1 1.3 1.9V16a1 1 0 0 1-1 1h-1.2'}),
+      React.createElement('circle',{key:2,cx:7.5,cy:16.8,r:1.7}),
+      React.createElement('circle',{key:3,cx:16.5,cy:16.8,r:1.7})]);
+    if (has('write','letter','email','note','school','reply','draft')) return svg(['M12 20h9','M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z']);
+    // default — generic "ask" spark
+    return svg(['M12 3 L13.9 9.2 L20 11 L13.9 12.8 L12 19 L10.1 12.8 L4 11 L10.1 9.2 Z']);
+  }
+
+  hexA(hex, a) {
+    const h = hex.replace('#','');
+    const r = parseInt(h.slice(0,2),16), g = parseInt(h.slice(2,4),16), b = parseInt(h.slice(4,6),16);
+    return `rgba(${r},${g},${b},${a})`;
+  }
+
+  renderVals() {
+    const { text, effort, horizon } = this.state;
+    const [c1, c2] = this.GRAD[effort][horizon];
+    const accentGrad = `linear-gradient(105deg, ${c1}, ${c2})`;
+    const accentSolid = c2;
+
+    // cool/warm representative gradients for the effort chips (use current horizon)
+    const coolGrad = `linear-gradient(105deg, ${this.GRAD.quick[horizon][0]}, ${this.GRAD.quick[horizon][1]})`;
+    const warmGrad = `linear-gradient(105deg, ${this.GRAD.long[horizon][0]}, ${this.GRAD.long[horizon][1]})`;
+
+    const offText = 'rgba(235,235,245,.85)';
+    const offBg = 'rgba(118,118,128,.24)';
+    const offBorder = 'transparent';
+    const noShadow = 'none';
+
+    const hChip = (key) => horizon === key
+      ? { text:'#fff', bg: accentGrad }
+      : { text:'rgba(235,235,245,.85)', bg:'rgba(118,118,128,.24)' };
+    const today = hChip('today'), tomorrow = hChip('tomorrow'), later = hChip('later');
+
+    return {
+      text,
+      iconEl: this.iconFor(text),
+      accentGrad,
+      accentSolid,
+      accentShadow: this.hexA(c2, .42),
+      fieldBg: this.hexA(c2, .2),
+      fieldBorder: this.hexA(c2, .42),
+
+      setQuick: () => this.setState({ effort:'quick' }),
+      setLong: () => this.setState({ effort:'long' }),
+      setToday: () => this.setState({ horizon:'today' }),
+      setTomorrow: () => this.setState({ horizon:'tomorrow' }),
+      setLater: () => this.setState({ horizon:'later' }),
+
+      quickText: effort==='quick' ? '#fff' : offText,
+      quickBg:   effort==='quick' ? coolGrad : offBg,
+      quickBorder: effort==='quick' ? 'transparent' : offBorder,
+      quickShadow: effort==='quick' ? `0 6px 16px ${this.hexA(this.GRAD.quick[horizon][1], .34)}` : noShadow,
+
+      longText: effort==='long' ? '#fff' : offText,
+      longBg:   effort==='long' ? warmGrad : offBg,
+      longBorder: effort==='long' ? 'transparent' : offBorder,
+      longShadow: effort==='long' ? `0 6px 16px ${this.hexA(this.GRAD.long[horizon][1], .34)}` : noShadow,
+
+      todayText: today.text, todayBg: today.bg,
+      tomorrowText: tomorrow.text, tomorrowBg: tomorrow.bg,
+      laterText: later.text, laterBg: later.bg,
+    };
+  }
+}
+</script>
+</body>
+</html>
