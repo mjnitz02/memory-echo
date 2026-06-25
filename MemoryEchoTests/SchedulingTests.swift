@@ -1,0 +1,67 @@
+//
+//  SchedulingTests.swift
+//  MemoryEchoTests
+//
+//  Pure-logic tests for the Phase 3 shrink engine. Dates are built in a fixed
+//  UTC Gregorian calendar so the math is deterministic regardless of the
+//  machine's locale / time zone.
+//
+
+import Testing
+import Foundation
+@testable import MemoryEcho
+
+struct SchedulingTests {
+
+    private let cal: Calendar = {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "UTC")!
+        return c
+    }()
+
+    private func at(_ year: Int, _ month: Int, _ day: Int, hour: Int = 12) -> Date {
+        cal.date(from: DateComponents(year: year, month: month, day: day, hour: hour))!
+    }
+
+    @Test func elapsedCountsWholeCalendarDaysNotHours() {
+        // Set late one day, checked early two days later → 2 calendar days,
+        // even though it's only ~39 wall-clock hours.
+        let setAt = at(2026, 6, 23, hour: 18)
+        let now = at(2026, 6, 25, hour: 9)
+        #expect(Scheduling.daysElapsed(from: setAt, to: now, calendar: cal) == 2)
+    }
+
+    @Test func remainingBurnsDownFromBuffer() {
+        let setAt = at(2026, 6, 24)
+        let now = at(2026, 6, 25) // 1 day elapsed
+        #expect(Scheduling.daysRemaining(buffer: 3, setAt: setAt, now: now, calendar: cal) == 2)
+        #expect(Scheduling.daysRemaining(buffer: 0, setAt: setAt, now: now, calendar: cal) == -1)
+    }
+
+    @Test func colorStopClimbsWithStaleness() {
+        #expect(Scheduling.colorStop(daysRemaining: 3) == .later)
+        #expect(Scheduling.colorStop(daysRemaining: 2) == .later)
+        #expect(Scheduling.colorStop(daysRemaining: 1) == .tomorrow)
+        #expect(Scheduling.colorStop(daysRemaining: 0) == .today)
+        #expect(Scheduling.colorStop(daysRemaining: -1) == .overdue)
+        #expect(Scheduling.colorStop(daysRemaining: -5) == .overdue)
+    }
+
+    @Test func effectiveHorizonCollapsesOverdueIntoToday() {
+        #expect(Scheduling.effectiveHorizon(daysRemaining: 5) == .laterThisWeek)
+        #expect(Scheduling.effectiveHorizon(daysRemaining: 2) == .laterThisWeek)
+        #expect(Scheduling.effectiveHorizon(daysRemaining: 1) == .tomorrow)
+        #expect(Scheduling.effectiveHorizon(daysRemaining: 0) == .today)
+        #expect(Scheduling.effectiveHorizon(daysRemaining: -3) == .today)
+    }
+
+    @Test func nudgeOnlyWhenOpenAndStuckPastThreshold() {
+        // Threshold is Tuning.nudgeThresholdDays (−2): exactly −2 nudges, −1 doesn't.
+        #expect(Scheduling.needsNudge(daysRemaining: -2, isOpen: true) == true)
+        #expect(Scheduling.needsNudge(daysRemaining: -3, isOpen: true) == true)
+        #expect(Scheduling.needsNudge(daysRemaining: -1, isOpen: true) == false)
+        #expect(Scheduling.needsNudge(daysRemaining: 0, isOpen: true) == false)
+        // A completed ask never nudges, however overdue.
+        #expect(Scheduling.needsNudge(daysRemaining: -5, isOpen: false) == false)
+    }
+}
