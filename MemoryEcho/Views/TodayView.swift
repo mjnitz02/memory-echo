@@ -13,6 +13,8 @@
 
 import SwiftUI
 import SwiftData
+import WidgetKit
+import MemoryEchoCore
 
 struct TodayView: View {
     @Environment(\.modelContext) private var context
@@ -77,6 +79,10 @@ struct TodayView: View {
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { now = .now }
+        }
+        .onOpenURL { url in
+            // Deep links from the widget: memoryecho://add opens the capture sheet.
+            if url.host == "add" { showingAdd = true }
         }
         .confirmationDialog(
             "You keep putting this off.",
@@ -219,5 +225,8 @@ struct TodayView: View {
         withAnimation(.easeOut(duration: 0.25)) {
             ask.completedAt = .now
         }
+        // The widget reads the same store but on its own timeline; nudge it to
+        // refresh now so a swiped-away ask disappears there too.
+        WidgetCenter.shared.reloadAllTimelines()
     }
 }

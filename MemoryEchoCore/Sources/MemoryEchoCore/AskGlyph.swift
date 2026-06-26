@@ -1,10 +1,10 @@
 //
 //  AskGlyph.swift
-//  MemoryEcho
+//  MemoryEchoCore
 //
 //  Pure function: title -> a white SF Symbol that hints at the *type* of
 //  activity. NOT user-configurable ("you get what you get"). This is the only
-//  channel that conveys category — color is reserved for effort × staliness.
+//  channel that conveys category — color is reserved for effort × staleness.
 //
 //  v1 is a curated keyword map (ported from the Claude-Design mock matcher).
 //  Future: swap in a small on-device model; this call site won't change.
@@ -12,7 +12,7 @@
 
 import Foundation
 
-enum AskGlyph {
+public enum AskGlyph {
     /// A keyword bucket → its SF Symbol + the words that trigger it.
     private static let map: [(symbol: String, keywords: [String])] = [
         ("phone.fill",                  ["call", "phone", "dentist", "ring", "dial", "doctor"]),
@@ -33,7 +33,7 @@ enum AskGlyph {
     private static let fallback = "sparkle"
 
     /// Returns an SF Symbol name for the given title.
-    static func symbol(for title: String) -> String {
+    public static func symbol(for title: String) -> String {
         let t = title.lowercased()
         for entry in map where entry.keywords.contains(where: { t.contains($0) }) {
             return entry.symbol

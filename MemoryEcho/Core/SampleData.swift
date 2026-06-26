@@ -9,6 +9,7 @@
 
 import Foundation
 import SwiftData
+import MemoryEchoCore
 
 enum SampleData {
     /// Seed sample asks + intentions if the store is empty and seeding is on.

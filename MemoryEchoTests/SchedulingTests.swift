@@ -9,7 +9,7 @@
 
 import Testing
 import Foundation
-@testable import MemoryEcho
+import MemoryEchoCore
 
 struct SchedulingTests {
 
