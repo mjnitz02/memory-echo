@@ -11,7 +11,10 @@ UI_TARGET      := MemoryEchoUITests
 # different device, e.g. `make test-unit SIMULATOR_NAME="iPhone 16"`.
 SIMULATOR_NAME ?= iPhone 17
 SIMULATOR_OS   ?= latest
-DESTINATION    ?= platform=iOS Simulator,name=$(SIMULATOR_NAME),OS=$(SIMULATOR_OS)
+# arch=arm64 pins the native slice (Mac + GitHub runners are Apple Silicon) so
+# xcodebuild doesn't warn about matching both the arm64 and x86_64/Rosetta slice
+# of the same simulator.
+DESTINATION    ?= platform=iOS Simulator,name=$(SIMULATOR_NAME),OS=$(SIMULATOR_OS),arch=arm64
 
 XCODEBUILD     := xcodebuild
 # Pretty-print xcodebuild output when xcbeautify is installed; otherwise raw.
