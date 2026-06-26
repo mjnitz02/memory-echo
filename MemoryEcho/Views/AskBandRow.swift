@@ -11,6 +11,7 @@
 //
 
 import SwiftUI
+import MemoryEchoCore
 
 struct AskBandRow: View {
     let ask: Ask
