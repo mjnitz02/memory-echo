@@ -12,6 +12,7 @@
 
 import SwiftUI
 import SwiftData
+import WidgetKit
 import MemoryEchoCore
 
 struct AddAskSheet: View {
@@ -110,6 +111,7 @@ struct AddAskSheet: View {
     private func add() {
         guard canAdd else { return }
         context.insert(Ask(title: trimmedTitle, effort: effort, horizon: horizon))
+        WidgetCenter.shared.reloadAllTimelines()
         dismiss()
     }
 
