@@ -17,20 +17,22 @@ public enum Effort: String, CaseIterable, Codable, Identifiable, Sendable {
     case quick
     case long
 
-    public var id: String { rawValue }
+    public var id: String {
+        rawValue
+    }
 
     public var label: String {
         switch self {
-        case .quick: return "Quick"
-        case .long:  return "Long"
+        case .quick: "Quick"
+        case .long: "Long"
         }
     }
 
     /// SF Symbol shown on the effort chip in the add sheet.
     public var symbol: String {
         switch self {
-        case .quick: return "bolt.fill"
-        case .long:  return "clock"
+        case .quick: "bolt.fill"
+        case .long: "clock"
         }
     }
 }
@@ -43,13 +45,15 @@ public enum Horizon: String, CaseIterable, Codable, Identifiable, Sendable {
     case tomorrow
     case laterThisWeek
 
-    public var id: String { rawValue }
+    public var id: String {
+        rawValue
+    }
 
     public var label: String {
         switch self {
-        case .today:         return "Today"
-        case .tomorrow:      return "Tomorrow"
-        case .laterThisWeek: return "Later this week"
+        case .today: "Today"
+        case .tomorrow: "Tomorrow"
+        case .laterThisWeek: "Later this week"
         }
     }
 
@@ -57,18 +61,18 @@ public enum Horizon: String, CaseIterable, Codable, Identifiable, Sendable {
     /// self-shrinking math. Lower number = more urgent.
     public var bufferDays: Int {
         switch self {
-        case .today:         return Tuning.bufferToday
-        case .tomorrow:      return Tuning.bufferTomorrow
-        case .laterThisWeek: return Tuning.bufferLaterThisWeek
+        case .today: Tuning.bufferToday
+        case .tomorrow: Tuning.bufferTomorrow
+        case .laterThisWeek: Tuning.bufferLaterThisWeek
         }
     }
 
     /// Sort weight for the Today list: smaller sorts higher (nearer the top).
     public var priorityOrder: Int {
         switch self {
-        case .today:         return 0
-        case .tomorrow:      return 1
-        case .laterThisWeek: return 2
+        case .today: 0
+        case .tomorrow: 1
+        case .laterThisWeek: 2
         }
     }
 }

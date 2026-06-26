@@ -11,10 +11,10 @@
 //  acceptance is just: shows today's top asks, reflects changes, add opens app.
 //
 
-import WidgetKit
-import SwiftUI
-import SwiftData
 import MemoryEchoCore
+import SwiftData
+import SwiftUI
+import WidgetKit
 
 // MARK: - Snapshot value type (entries must not carry live @Model objects)
 
@@ -50,20 +50,22 @@ struct AskEntry: TimelineEntry {
     static let placeholder = AskEntry(date: .now, asks: [
         .init(title: "Call the dentist", glyph: "phone.fill", effort: .quick, stop: .overdue),
         .init(title: "Fix the garden gate", glyph: "wrench.and.screwdriver.fill", effort: .long, stop: .today),
-        .init(title: "Buy groceries", glyph: "cart.fill", effort: .quick, stop: .tomorrow),
+        .init(title: "Buy groceries", glyph: "cart.fill", effort: .quick, stop: .tomorrow)
     ])
 }
 
 // MARK: - Timeline provider (reads the shared store)
 
 struct Provider: TimelineProvider {
-    func placeholder(in context: Context) -> AskEntry { .placeholder }
+    func placeholder(in _: Context) -> AskEntry {
+        .placeholder
+    }
 
     func getSnapshot(in context: Context, completion: @escaping (AskEntry) -> Void) {
         completion(context.isPreview ? .placeholder : loadEntry())
     }
 
-    func getTimeline(in context: Context, completion: @escaping (Timeline<AskEntry>) -> Void) {
+    func getTimeline(in _: Context, completion: @escaping (Timeline<AskEntry>) -> Void) {
         let entry = loadEntry()
         // Refresh just after midnight so staleness colors/ordering advance a day.
         let next = Calendar.current.nextDate(
@@ -98,13 +100,15 @@ struct MemoryEchoWidgetEntryView: View {
     /// How many rows this family should show.
     private var maxRows: Int {
         switch family {
-        case .systemExtraLarge: return Tuning.widgetExtraLargeRows
-        case .systemLarge: return Tuning.widgetLargeRows
-        default: return Tuning.widgetMediumRows
+        case .systemExtraLarge: Tuning.widgetExtraLargeRows
+        case .systemLarge: Tuning.widgetLargeRows
+        default: Tuning.widgetMediumRows
         }
     }
 
-    private var rows: [AskSnapshot] { Array(entry.asks.prefix(maxRows)) }
+    private var rows: [AskSnapshot] {
+        Array(entry.asks.prefix(maxRows))
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {

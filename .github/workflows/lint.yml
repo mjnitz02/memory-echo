@@ -1,0 +1,31 @@
+name: Lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancel an in-progress run when a newer commit lands on the same branch/PR.
+# head_ref (PR source branch) falls back to ref (push), so push + PR runs for
+# one branch share a group instead of running twice.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: SwiftLint + SwiftFormat
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # SwiftLint ships on the macOS runner image; install both via Homebrew
+      # so the job is self-contained and matches `make install-tools` locally.
+      - name: Install tools
+        run: brew install swiftlint swiftformat
+
+      - name: Check formatting
+        run: make format-check
+
+      - name: Lint
+        run: make lint

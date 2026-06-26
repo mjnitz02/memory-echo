@@ -11,17 +11,17 @@
 //  all land in later phases; this is the skeleton they hang on.
 //
 
-import SwiftUI
-import SwiftData
-import WidgetKit
 import MemoryEchoCore
+import SwiftData
+import SwiftUI
+import WidgetKit
 
 struct TodayView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
 
-    // Open asks only. Final order is derived from staleness below (the @Query
-    // sort is just a stable starting point).
+    /// Open asks only. Final order is derived from staleness below (the @Query
+    /// sort is just a stable starting point).
     @Query(
         filter: #Predicate<Ask> { $0.completedAt == nil },
         sort: [SortDescriptor(\Ask.createdAt, order: .forward)]
@@ -49,7 +49,7 @@ struct TodayView: View {
     }
 
     private var showingIntentions: [Intention] {
-        intentions.filter { $0.isShowing }
+        intentions.filter(\.isShowing)
     }
 
     var body: some View {

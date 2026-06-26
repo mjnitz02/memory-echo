@@ -5,8 +5,8 @@
 //  The widget extension entry point.
 //
 
-import WidgetKit
 import SwiftUI
+import WidgetKit
 
 @main
 struct MemoryEchoWidgetBundle: WidgetBundle {
