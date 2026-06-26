@@ -1,0 +1,39 @@
+name: Bug report
+description: Something isn't working as expected
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Keep it as short as it needs to be.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you see, and what did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. …
+        2. …
+        3. …
+    validations:
+      required: false
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Device, iOS version, app build/commit.
+      placeholder: "iPhone 16 Pro, iOS 26.5, commit abc1234"
+    validations:
+      required: false
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes / logs / screenshots
+    validations:
+      required: false

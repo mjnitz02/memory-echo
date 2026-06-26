@@ -1,0 +1,30 @@
+name: Idea / feature
+description: A change or addition to consider
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Remember the guardrails: capture-first, get out of the way, no settings,
+        no hierarchy/calendar, derived prioritization. Ideas that add knobs or
+        friction are probably out of scope by design.
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea
+      description: What should change, and what problem does it solve?
+    validations:
+      required: true
+  - type: textarea
+    id: fit
+    attributes:
+      label: How does it fit the guardrails?
+      description: Especially "capture is #1" and "get out of the way."
+    validations:
+      required: false
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false
