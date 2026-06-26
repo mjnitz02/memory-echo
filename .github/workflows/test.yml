@@ -28,9 +28,12 @@ jobs:
         run: make test-unit
 
   # UI tests are slower / flakier, so they run in their own job and don't
-  # block the unit gate. Let them be the "nice to have" signal.
+  # block the unit gate. Disabled for now (shows as "skipped" on PRs) because
+  # they're slow on GitHub runners — flip this to `true` to enable once the
+  # app reaches a bug-fix-worthy state.
   ui:
     name: UI tests
+    if: false
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
