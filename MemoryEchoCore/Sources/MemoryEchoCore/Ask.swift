@@ -35,11 +35,11 @@ public final class Ask {
         createdAt: Date = .now
     ) {
         self.title = title
-        self.effortRaw = effort.rawValue
-        self.horizonRaw = horizon.rawValue
+        effortRaw = effort.rawValue
+        horizonRaw = horizon.rawValue
         self.createdAt = createdAt
-        self.horizonSetAt = createdAt
-        self.completedAt = nil
+        horizonSetAt = createdAt
+        completedAt = nil
     }
 
     // MARK: Typed accessors over the raw storage
@@ -57,18 +57,25 @@ public final class Ask {
         }
     }
 
-    public var isOpen: Bool { completedAt == nil }
+    public var isOpen: Bool {
+        completedAt == nil
+    }
 
     /// Re-arm the buffer: the horizon stays, but the clock restarts from now.
     /// This is the "reset" path out of the accountability nudge.
-    public func reset() { horizonSetAt = .now }
+    public func reset() {
+        horizonSetAt = .now
+    }
 
     // MARK: Derived presentation
 
     /// SF Symbol for this ask's title.
-    public var glyph: String { AskGlyph.symbol(for: title) }
+    public var glyph: String {
+        AskGlyph.symbol(for: title)
+    }
 
     // MARK: Derived staleness (the Phase 3 shrink engine, evaluated `asOf` a
+
     // given instant so SwiftUI can refresh it on scene-activation / day change).
 
     /// Buffer remaining for this ask. Negative = overdue.

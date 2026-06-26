@@ -1,0 +1,19 @@
+#!/bin/sh
+# MemoryEcho pre-commit hook: lint + format-check before a commit lands.
+# Enable with `make install-hooks` (sets core.hooksPath to .githooks).
+# Skip a one-off commit with `git commit --no-verify`.
+
+set -e
+
+if ! command -v swiftlint >/dev/null 2>&1 || ! command -v swiftformat >/dev/null 2>&1; then
+	echo "pre-commit: swiftlint/swiftformat not found — run 'make install-tools'." >&2
+	exit 1
+fi
+
+echo "pre-commit: swiftformat --lint ..."
+swiftformat --lint .
+
+echo "pre-commit: swiftlint --strict ..."
+swiftlint lint --strict
+
+echo "pre-commit: OK"

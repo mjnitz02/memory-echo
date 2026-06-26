@@ -8,8 +8,8 @@
 //
 
 import Foundation
-import SwiftData
 import MemoryEchoCore
+import SwiftData
 
 enum SampleData {
     /// Seed sample asks + intentions if the store is empty and seeding is on.
@@ -19,10 +19,14 @@ enum SampleData {
 
         let askCount = (try? context.fetchCount(FetchDescriptor<Ask>())) ?? 0
         let intentionCount = (try? context.fetchCount(FetchDescriptor<Intention>())) ?? 0
-        guard askCount == 0 && intentionCount == 0 else { return }
+        guard askCount == 0, intentionCount == 0 else { return }
 
-        for ask in sampleAsks() { context.insert(ask) }
-        for intention in sampleIntentions() { context.insert(intention) }
+        for ask in sampleAsks() {
+            context.insert(ask)
+        }
+        for intention in sampleIntentions() {
+            context.insert(intention)
+        }
         try? context.save()
     }
 
@@ -32,35 +36,35 @@ enum SampleData {
     /// `daysAgo` back-dates the set time by whole calendar days.
     private static func sampleAsks() -> [Ask] {
         let cal = Calendar.current
-        func daysAgo(_ n: Int) -> Date {
-            cal.date(byAdding: .day, value: -n, to: cal.startOfDay(for: .now)) ?? .now
+        func daysAgo(_ days: Int) -> Date {
+            cal.date(byAdding: .day, value: -days, to: cal.startOfDay(for: .now)) ?? .now
         }
 
         // (buffer − daysElapsed) → resulting stop:
         return [
             // today buffer 0:  set 2d ago → −2 → overdue + NUDGE
-            Ask(title: "Call the dentist",       effort: .quick, horizon: .today,         createdAt: daysAgo(2)),
+            Ask(title: "Call the dentist", effort: .quick, horizon: .today, createdAt: daysAgo(2)),
             // today buffer 0:  set 1d ago → −1 → overdue (no nudge yet)
-            Ask(title: "Fix the garden gate",    effort: .long,  horizon: .today,         createdAt: daysAgo(1)),
+            Ask(title: "Fix the garden gate", effort: .long, horizon: .today, createdAt: daysAgo(1)),
             // tomorrow buffer 1: set 1d ago → 0 → climbed to today
-            Ask(title: "Clean out the garage",   effort: .long,  horizon: .tomorrow,      createdAt: daysAgo(1)),
+            Ask(title: "Clean out the garage", effort: .long, horizon: .tomorrow, createdAt: daysAgo(1)),
             // today buffer 0:  set today → 0 → today
-            Ask(title: "Pay the water bill",     effort: .quick, horizon: .today,         createdAt: daysAgo(0)),
+            Ask(title: "Pay the water bill", effort: .quick, horizon: .today, createdAt: daysAgo(0)),
             // later buffer 3:  set 2d ago → 1 → climbed to tomorrow
-            Ask(title: "Water the plants",       effort: .long,  horizon: .laterThisWeek, createdAt: daysAgo(2)),
+            Ask(title: "Water the plants", effort: .long, horizon: .laterThisWeek, createdAt: daysAgo(2)),
             // tomorrow buffer 1: set today → 1 → tomorrow
-            Ask(title: "Buy groceries",          effort: .quick, horizon: .tomorrow,      createdAt: daysAgo(0)),
+            Ask(title: "Buy groceries", effort: .quick, horizon: .tomorrow, createdAt: daysAgo(0)),
             // later buffer 3:  set today → 3 → later (calm)
-            Ask(title: "Write thank-you letter", effort: .quick, horizon: .laterThisWeek, createdAt: daysAgo(0)),
+            Ask(title: "Write thank-you letter", effort: .quick, horizon: .laterThisWeek, createdAt: daysAgo(0))
         ]
     }
 
     /// Three intention sparks for the top chip row.
     private static func sampleIntentions() -> [Intention] {
         [
-            Intention(text: "Breathe",  intervalHours: 6,  sortIndex: 0),
-            Intention(text: "Reflect",  intervalHours: 12, sortIndex: 1),
-            Intention(text: "Reach out", intervalHours: 24, sortIndex: 2),
+            Intention(text: "Breathe", intervalHours: 6, sortIndex: 0),
+            Intention(text: "Reflect", intervalHours: 12, sortIndex: 1),
+            Intention(text: "Reach out", intervalHours: 24, sortIndex: 2)
         ]
     }
 }

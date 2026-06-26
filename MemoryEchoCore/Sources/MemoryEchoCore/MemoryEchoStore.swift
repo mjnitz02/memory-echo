@@ -12,7 +12,9 @@ import SwiftData
 
 public enum MemoryEchoStore {
     /// The schema both processes agree on.
-    public static var schema: Schema { Schema([Ask.self, Intention.self]) }
+    public static var schema: Schema {
+        Schema([Ask.self, Intention.self])
+    }
 
     /// A container backed by the shared App Group container.
     ///
@@ -26,7 +28,7 @@ public enum MemoryEchoStore {
                 schema: schema,
                 isStoredInMemoryOnly: false,
                 groupContainer: .identifier(Tuning.appGroupID)
-              )
+            )
         do {
             return try ModelContainer(for: schema, configurations: [configuration])
         } catch {

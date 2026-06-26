@@ -10,8 +10,8 @@
 //  a pulsing nudge badge.
 //
 
-import SwiftUI
 import MemoryEchoCore
+import SwiftUI
 
 struct AskBandRow: View {
     let ask: Ask
@@ -19,8 +19,13 @@ struct AskBandRow: View {
     /// value that refreshes on scene-activation; previews/defaults use now.
     var now: Date = .now
 
-    private var stop: ColorStop { ask.colorStop(asOf: now) }
-    private var nudging: Bool { ask.needsNudge(asOf: now) }
+    private var stop: ColorStop {
+        ask.colorStop(asOf: now)
+    }
+
+    private var nudging: Bool {
+        ask.needsNudge(asOf: now)
+    }
 
     var body: some View {
         HStack(spacing: 18) {
