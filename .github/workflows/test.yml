@@ -1,0 +1,50 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancel an in-progress run when a newer commit lands on the same branch/PR.
+# head_ref (PR source branch) falls back to ref (push), so push + PR runs for
+# one branch share a group instead of running twice.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Fast, reliable gate: the Swift Testing unit suite must pass.
+  unit:
+    name: Unit tests
+    # MemoryEcho targets the iOS 26 SDK, which needs Xcode 26 (macOS 26).
+    # Adjust this label if the runner image isn't available yet.
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Run unit tests
+        run: make test-unit
+
+  # UI tests are slower / flakier, so they run in their own job and don't
+  # block the unit gate. Disabled for now (shows as "skipped" on PRs) because
+  # they're slow on GitHub runners — flip this to `true` to enable once the
+  # app reaches a bug-fix-worthy state.
+  ui:
+    name: UI tests
+    if: false
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Run UI tests
+        run: make test-ui

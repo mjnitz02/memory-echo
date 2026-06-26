@@ -7,16 +7,15 @@
 //  machine's locale / time zone.
 //
 
-import Testing
 import Foundation
 import MemoryEchoCore
+import Testing
 
 struct SchedulingTests {
-
     private let cal: Calendar = {
-        var c = Calendar(identifier: .gregorian)
-        c.timeZone = TimeZone(identifier: "UTC")!
-        return c
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        return calendar
     }()
 
     private func at(_ year: Int, _ month: Int, _ day: Int, hour: Int = 12) -> Date {

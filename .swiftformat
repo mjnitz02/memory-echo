@@ -1,0 +1,18 @@
+# SwiftFormat configuration for MemoryEcho
+# Docs: https://github.com/nicklockwood/SwiftFormat/blob/main/Rules.md
+# `make format` rewrites files; `make format-check` only verifies (used in CI).
+
+--swiftversion 6.0
+
+# Paths SwiftFormat should never touch.
+--exclude .build,MemoryEchoCore/.build,DerivedData,**/.build
+
+# A light, opinionated baseline — mostly defaults with a few choices spelled out.
+--self remove                 # drop redundant `self.`
+--importgrouping testable-bottom
+--commas inline
+--trimwhitespace always
+--wraparguments before-first
+--wrapparameters before-first
+--wrapcollections before-first
+--maxwidth 120                # keep in step with SwiftLint line_length warning

@@ -10,10 +10,10 @@
 //  `Ask`, so what you see here is exactly what lands in the list.
 //
 
-import SwiftUI
-import SwiftData
-import WidgetKit
 import MemoryEchoCore
+import SwiftData
+import SwiftUI
+import WidgetKit
 
 struct AddAskSheet: View {
     @Environment(\.dismiss) private var dismiss
@@ -29,7 +29,9 @@ struct AddAskSheet: View {
         title.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private var canAdd: Bool { !trimmedTitle.isEmpty }
+    private var canAdd: Bool {
+        !trimmedTitle.isEmpty
+    }
 
     /// A transient, un-inserted Ask used purely to render the live preview with
     /// the same code path the Today list uses. Falls back to placeholder copy
@@ -54,17 +56,17 @@ struct AddAskSheet: View {
                     .onSubmit(add)
 
                 chipGroup(title: "Effort") {
-                    ForEach(Effort.allCases) { e in
-                        chip(label: e.label, symbol: e.symbol, selected: effort == e) {
-                            effort = e
+                    ForEach(Effort.allCases) { option in
+                        chip(label: option.label, symbol: option.symbol, selected: effort == option) {
+                            effort = option
                         }
                     }
                 }
 
                 chipGroup(title: "When") {
-                    ForEach(Horizon.allCases) { h in
-                        chip(label: h.label, symbol: nil, selected: horizon == h) {
-                            horizon = h
+                    ForEach(Horizon.allCases) { option in
+                        chip(label: option.label, symbol: nil, selected: horizon == option) {
+                            horizon = option
                         }
                     }
                 }
@@ -117,10 +119,9 @@ struct AddAskSheet: View {
 
     // MARK: Chip building blocks
 
-    @ViewBuilder
-    private func chipGroup<Content: View>(
+    private func chipGroup(
         title: String,
-        @ViewBuilder _ content: () -> Content
+        @ViewBuilder _ content: () -> some View
     ) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title.uppercased())

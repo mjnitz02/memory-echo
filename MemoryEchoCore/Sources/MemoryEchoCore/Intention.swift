@@ -26,14 +26,18 @@ public final class Intention {
     public init(text: String, intervalHours: Int = 24, sortIndex: Int = 0) {
         self.text = text
         self.intervalHours = intervalHours
-        self.lastDismissedAt = nil
+        lastDismissedAt = nil
         self.sortIndex = sortIndex
     }
 
     /// Whether the intention should currently be visible.
     /// Phase 1 approximation: visible until dismissed (interval reappearance
     /// is wired up in Phase 6).
-    public var isShowing: Bool { lastDismissedAt == nil }
+    public var isShowing: Bool {
+        lastDismissedAt == nil
+    }
 
-    public func dismiss() { lastDismissedAt = .now }
+    public func dismiss() {
+        lastDismissedAt = .now
+    }
 }
