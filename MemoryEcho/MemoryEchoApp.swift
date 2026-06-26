@@ -7,22 +7,13 @@
 
 import SwiftUI
 import SwiftData
+import MemoryEchoCore
 
 @main
 struct MemoryEchoApp: App {
-    let sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Ask.self,
-            Intention.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
+    // Shared SwiftData stack lives in the App Group container so the widget
+    // reads the same store (see MemoryEchoCore.MemoryEchoStore).
+    let sharedModelContainer = MemoryEchoStore.container()
 
     var body: some Scene {
         WindowGroup {

@@ -1,6 +1,6 @@
 //
 //  AskPalette.swift
-//  MemoryEcho
+//  MemoryEchoCore
 //
 //  Color is a 2-axis readout, computed (never stored):
 //    • effort  -> temperature family  (Quick = cool, Long = warm)
@@ -13,11 +13,11 @@
 import SwiftUI
 
 /// Where an ask sits on the staleness axis. In Phase 1 this maps straight from
-/// the stored horizon; the Phase 3 shrink engine will start producing `.overdue`.
-enum ColorStop {
+/// the stored horizon; the Phase 3 shrink engine produces `.overdue` too.
+public enum ColorStop: Sendable {
     case later, tomorrow, today, overdue
 
-    init(horizon: Horizon) {
+    public init(horizon: Horizon) {
         switch horizon {
         case .laterThisWeek: self = .later
         case .tomorrow:      self = .tomorrow
@@ -26,7 +26,7 @@ enum ColorStop {
     }
 }
 
-enum AskPalette {
+public enum AskPalette {
     /// (start, end) hex pair for every effort × stop combination.
     private static func stops(_ effort: Effort, _ stop: ColorStop) -> (String, String) {
         switch (effort, stop) {
@@ -44,7 +44,7 @@ enum AskPalette {
     }
 
     /// The band gradient for an ask. Angled roughly like the mock's 105°.
-    static func gradient(effort: Effort, stop: ColorStop) -> LinearGradient {
+    public static func gradient(effort: Effort, stop: ColorStop) -> LinearGradient {
         let (a, b) = stops(effort, stop)
         return LinearGradient(
             colors: [Color(hex: a), Color(hex: b)],
@@ -54,14 +54,14 @@ enum AskPalette {
     }
 
     /// Solid representative color (the lighter end) — handy for chips/accents.
-    static func accent(effort: Effort, stop: ColorStop) -> Color {
+    public static func accent(effort: Effort, stop: ColorStop) -> Color {
         Color(hex: stops(effort, stop).1)
     }
 }
 
 extension Color {
     /// Build a Color from a `#RRGGBB` hex string. Falls back to gray on bad input.
-    init(hex: String) {
+    public init(hex: String) {
         let s = hex.trimmingCharacters(in: CharacterSet(charactersIn: "#"))
         guard s.count == 6, let v = UInt64(s, radix: 16) else {
             self = .gray

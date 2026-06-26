@@ -12,6 +12,7 @@
 
 import SwiftUI
 import SwiftData
+import MemoryEchoCore
 
 struct AddAskSheet: View {
     @Environment(\.dismiss) private var dismiss
