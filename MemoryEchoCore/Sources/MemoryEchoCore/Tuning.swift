@@ -36,6 +36,13 @@ public enum Tuning {
     /// be changed. (See `EffortProfile`.)
     public static let defaultPreferredEffort: Effort = .quick
 
+    // MARK: Intentions
+
+    /// The interval choices (hours) an intention can echo back on.
+    public static let intentionIntervalChoices = [6, 12, 24, 48]
+    /// Default interval for a freshly-added intention.
+    public static let defaultIntentionIntervalHours = 24
+
     // MARK: Today list layout
 
     /// Minimum height of a full-bleed task band.
