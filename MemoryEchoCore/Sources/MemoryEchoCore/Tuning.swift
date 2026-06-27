@@ -22,6 +22,20 @@ public enum Tuning {
     /// earns the accountability nudge. Phase 3.
     public static let nudgeThresholdDays = -2
 
+    // MARK: Time-of-day effort boost
+
+    /// How strongly an ask whose effort matches the current hour's preference
+    /// rises in the Today order. Subtracted from `daysRemaining` as a fractional
+    /// advantage, so at < 1 it's a pure *same-day tie-break*: a matching ask
+    /// rises among equally-stale ones but never leapfrogs a genuinely-staler
+    /// ask. Staleness stays the spine; a truly-overdue mismatch still wins.
+    public static let timeOfDayBoost = 0.5
+
+    /// The effort preferred at each hour when the user hasn't edited the
+    /// profile. All-`Quick` by default; the profile is the one place this can
+    /// be changed. (See `EffortProfile`.)
+    public static let defaultPreferredEffort: Effort = .quick
+
     // MARK: Today list layout
 
     /// Minimum height of a full-bleed task band.

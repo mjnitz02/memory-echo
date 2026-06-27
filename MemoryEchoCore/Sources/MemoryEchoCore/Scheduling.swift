@@ -58,4 +58,19 @@ public enum Scheduling {
     public static func needsNudge(daysRemaining: Int, isOpen: Bool) -> Bool {
         isOpen && daysRemaining <= Tuning.nudgeThresholdDays
     }
+
+    /// The composite sort value for the Today order: staleness is the spine, but
+    /// an ask whose effort matches the current hour's preference gets a small
+    /// fractional advantage (`Tuning.timeOfDayBoost`). At < 1 the boost is a pure
+    /// *same-day tie-break* — a matching ask rises among equally-stale ones but
+    /// never leapfrogs a genuinely-staler ask, so a truly-overdue mismatch still
+    /// wins. Lower value sorts higher (nearer the top). See [[EffortProfile]].
+    public static func todaySortValue(
+        daysRemaining: Int,
+        effort: Effort,
+        preferredEffort: Effort
+    ) -> Double {
+        let boost = effort == preferredEffort ? Tuning.timeOfDayBoost : 0
+        return Double(daysRemaining) - boost
+    }
 }

@@ -11,6 +11,7 @@
 //  all land in later phases; this is the skeleton they hang on.
 //
 
+import Combine
 import MemoryEchoCore
 import SwiftData
 import SwiftUI
@@ -32,18 +33,37 @@ struct TodayView: View {
     private var intentions: [Intention]
 
     @State private var showingAdd = false
+    @State private var showingSettings = false
     /// The ask whose accountability nudge dialog is open, if any.
     @State private var nudgingAsk: Ask?
-    /// Instant the shrink engine is evaluated against; refreshed on activation.
+    /// Instant the shrink engine is evaluated against; refreshed on activation
+    /// and once a minute so the time-of-day boost re-ranks as hours turn over.
     @State private var now: Date = .now
+    /// The time-of-day effort profile, reloaded when the settings sheet closes.
+    @State private var profile = EffortProfile.load()
 
-    /// Staleness is priority: fewest days remaining floats to the top, oldest
-    /// first as a tie-break. The shrink engine (Scheduling) does the math.
+    /// Ticks every minute so the order tracks hour boundaries (and midnight)
+    /// without the app being reopened.
+    private let minuteTick = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
+
+    /// Staleness is the spine: fewest days remaining floats to the top. Among
+    /// similarly-stale asks, the one whose effort matches the current hour's
+    /// preference gets a gentle boost (Scheduling.todaySortValue); oldest first
+    /// breaks any remaining tie.
     private var orderedAsks: [Ask] {
-        openAsks.sorted { a, b in
-            let ra = a.daysRemaining(asOf: now)
-            let rb = b.daysRemaining(asOf: now)
-            if ra != rb { return ra < rb }
+        let preferred = profile.preferredEffort(asOf: now)
+        return openAsks.sorted { a, b in
+            let va = Scheduling.todaySortValue(
+                daysRemaining: a.daysRemaining(asOf: now),
+                effort: a.effort,
+                preferredEffort: preferred
+            )
+            let vb = Scheduling.todaySortValue(
+                daysRemaining: b.daysRemaining(asOf: now),
+                effort: b.effort,
+                preferredEffort: preferred
+            )
+            if va != vb { return va < vb }
             return a.createdAt < b.createdAt
         }
     }
@@ -77,9 +97,18 @@ struct TodayView: View {
         .sheet(isPresented: $showingAdd) {
             AddAskSheet()
         }
+        .sheet(
+            isPresented: $showingSettings,
+            onDismiss: { profile = EffortProfile.load() },
+            content: { EffortProfileView() }
+        )
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { now = .now }
+            if phase == .active {
+                now = .now
+                profile = EffortProfile.load()
+            }
         }
+        .onReceive(minuteTick) { now = $0 }
         .onOpenURL { url in
             // Deep links from the widget: memoryecho://add opens the capture sheet.
             if url.host == "add" { showingAdd = true }
@@ -118,10 +147,15 @@ struct TodayView: View {
                     .foregroundStyle(.white.opacity(0.45))
             }
             Spacer()
-            // Settings gear is a placeholder — the time-of-day profile lands later.
-            Image(systemName: "gearshape")
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.5))
+            // The one sanctioned settings surface: the time-of-day effort profile.
+            Button {
+                showingSettings = true
+            } label: {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.5))
+            }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 24)
         .padding(.top, 8)
