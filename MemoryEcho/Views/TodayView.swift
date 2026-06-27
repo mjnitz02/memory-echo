@@ -41,6 +41,8 @@ struct TodayView: View {
     @State private var now: Date = .now
     /// The time-of-day effort profile, reloaded when the settings sheet closes.
     @State private var profile = EffortProfile.load()
+    /// Bridge from the Action Button / Siri add intent (see AddAskIntent).
+    @State private var captureRouter = CaptureRouter.shared
 
     /// Ticks every minute so the order tracks hour boundaries (and midnight)
     /// without the app being reopened.
@@ -111,6 +113,8 @@ struct TodayView: View {
             }
         }
         .onReceive(minuteTick) { now = $0 }
+        .onAppear(perform: consumePendingAdd)
+        .onChange(of: captureRouter.pendingAdd) { consumePendingAdd() }
         .onOpenURL { url in
             // Deep links from the widget: memoryecho://add opens the capture sheet.
             if url.host == "add" { showingAdd = true }
@@ -256,6 +260,14 @@ struct TodayView: View {
     }
 
     // MARK: Actions
+
+    /// Present the capture sheet if the add intent requested it, then clear the
+    /// flag. Covers cold launch (onAppear) and warm foreground (onChange).
+    private func consumePendingAdd() {
+        guard captureRouter.pendingAdd else { return }
+        captureRouter.pendingAdd = false
+        showingAdd = true
+    }
 
     private func complete(_ ask: Ask) {
         withAnimation(.easeOut(duration: 0.25)) {
