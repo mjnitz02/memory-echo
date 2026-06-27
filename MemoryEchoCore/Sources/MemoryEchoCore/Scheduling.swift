@@ -59,6 +59,19 @@ public enum Scheduling {
         isOpen && daysRemaining <= Tuning.nudgeThresholdDays
     }
 
+    /// Whether an ephemeral intention should currently be on screen. It shows
+    /// until tapped, then hides for its interval and quietly echoes back once
+    /// `intervalHours` have elapsed since the dismissal. Never dismissed = always
+    /// showing. Pure date math so it's testable and the widget can reuse it.
+    public static func intentionIsShowing(
+        lastDismissedAt: Date?,
+        intervalHours: Int,
+        now: Date
+    ) -> Bool {
+        guard let dismissed = lastDismissedAt else { return true }
+        return now.timeIntervalSince(dismissed) >= Double(intervalHours) * 3600
+    }
+
     /// The composite sort value for the Today order: staleness is the spine, but
     /// an ask whose effort matches the current hour's preference gets a small
     /// fractional advantage (`Tuning.timeOfDayBoost`). At < 1 the boost is a pure

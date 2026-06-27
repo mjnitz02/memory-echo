@@ -2,12 +2,12 @@
 //  EffortProfileView.swift
 //  MemoryEcho
 //
-//  The app's ONE sanctioned settings screen: the 24-hour effort profile that
-//  gently boosts matching-effort asks in the Today order (see EffortProfile /
-//  Scheduling.todaySortValue). Deliberately plain — one row per hour, the hour
-//  and its priority, a Quick/Long toggle. Drag a finger down the column to flip
-//  a run of hours at once. All 24 fit on screen (no scroll) so that vertical
-//  drag is unambiguous and the whole day reads at a glance.
+//  One of the two settings screens (pushed from SettingsView): the 24-hour
+//  effort profile that gently boosts matching-effort asks in the Today order
+//  (see EffortProfile / Scheduling.todaySortValue). Deliberately plain — one row
+//  per hour, the hour and its priority, a Quick/Long toggle. Drag a finger down
+//  the column to flip a run of hours at once. All 24 fit on screen (no scroll)
+//  so that vertical drag is unambiguous and the whole day reads at a glance.
 //
 
 import MemoryEchoCore
@@ -15,8 +15,6 @@ import SwiftUI
 import WidgetKit
 
 struct EffortProfileView: View {
-    @Environment(\.dismiss) private var dismiss
-
     @State private var profile = EffortProfile.load()
     /// While a paint-drag is active, the effort being smeared across rows.
     @State private var paintTarget: Effort?
@@ -24,35 +22,26 @@ struct EffortProfileView: View {
     private let rowSpace = "effortRows"
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                blurb
+        VStack(spacing: 0) {
+            blurb
 
-                GeometryReader { geo in
-                    let rowHeight = geo.size.height / 24
-                    VStack(spacing: 0) {
-                        ForEach(0 ..< 24, id: \.self) { hour in
-                            hourRow(hour, height: rowHeight)
-                        }
+            GeometryReader { geo in
+                let rowHeight = geo.size.height / 24
+                VStack(spacing: 0) {
+                    ForEach(0 ..< 24, id: \.self) { hour in
+                        hourRow(hour, height: rowHeight)
                     }
-                    .coordinateSpace(name: rowSpace)
-                    .contentShape(Rectangle())
-                    .gesture(paintGesture(rowHeight: rowHeight))
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 12)
+                .coordinateSpace(name: rowSpace)
+                .contentShape(Rectangle())
+                .gesture(paintGesture(rowHeight: rowHeight))
             }
-            .background(Color.black.ignoresSafeArea())
-            .preferredColorScheme(.dark)
-            .navigationTitle("Time of day")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
-                        .fontWeight(.semibold)
-                }
-            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 12)
         }
+        .background(Color.black.ignoresSafeArea())
+        .navigationTitle("Time of day")
+        .navigationBarTitleDisplayMode(.inline)
     }
 
     // MARK: Explainer
@@ -148,5 +137,6 @@ struct EffortProfileView: View {
 }
 
 #Preview {
-    EffortProfileView()
+    NavigationStack { EffortProfileView() }
+        .preferredColorScheme(.dark)
 }

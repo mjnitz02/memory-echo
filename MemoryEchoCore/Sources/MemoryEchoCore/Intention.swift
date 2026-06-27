@@ -6,8 +6,10 @@
 //  "Reflect") that ephemerally echoes back on an interval instead of being
 //  always-on. Tapping it dismisses it until the interval elapses.
 //
-//  Phase 1 only stores + displays them as the top chips; the real
-//  resurface-on-interval timeline behavior lands in Phase 6.
+//  Resurface-on-interval (Phase 6): once dismissed it hides for `intervalHours`,
+//  then quietly echoes back. The math is pure (Scheduling.intentionIsShowing)
+//  and evaluated against a passed-in `now` so SwiftUI re-checks it on the
+//  Today view's minute tick / scene activation.
 //
 
 import Foundation
@@ -23,18 +25,25 @@ public final class Intention {
     /// Stable ordering for the chip row.
     public var sortIndex: Int
 
-    public init(text: String, intervalHours: Int = 24, sortIndex: Int = 0) {
+    public init(
+        text: String,
+        intervalHours: Int = Tuning.defaultIntentionIntervalHours,
+        sortIndex: Int = 0
+    ) {
         self.text = text
         self.intervalHours = intervalHours
         lastDismissedAt = nil
         self.sortIndex = sortIndex
     }
 
-    /// Whether the intention should currently be visible.
-    /// Phase 1 approximation: visible until dismissed (interval reappearance
-    /// is wired up in Phase 6).
-    public var isShowing: Bool {
-        lastDismissedAt == nil
+    /// Whether the intention should currently be visible: showing until tapped,
+    /// then back once its interval elapses (see Scheduling.intentionIsShowing).
+    public func isShowing(asOf now: Date = .now) -> Bool {
+        Scheduling.intentionIsShowing(
+            lastDismissedAt: lastDismissedAt,
+            intervalHours: intervalHours,
+            now: now
+        )
     }
 
     public func dismiss() {

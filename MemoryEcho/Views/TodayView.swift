@@ -68,8 +68,10 @@ struct TodayView: View {
         }
     }
 
+    /// Intentions currently echoing back — dismissed ones reappear once their
+    /// interval elapses. Re-evaluated as `now` advances (minute tick / activation).
     private var showingIntentions: [Intention] {
-        intentions.filter(\.isShowing)
+        intentions.filter { $0.isShowing(asOf: now) }
     }
 
     var body: some View {
@@ -100,7 +102,7 @@ struct TodayView: View {
         .sheet(
             isPresented: $showingSettings,
             onDismiss: { profile = EffortProfile.load() },
-            content: { EffortProfileView() }
+            content: { SettingsView() }
         )
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
@@ -147,7 +149,7 @@ struct TodayView: View {
                     .foregroundStyle(.white.opacity(0.45))
             }
             Spacer()
-            // The one sanctioned settings surface: the time-of-day effort profile.
+            // The one sanctioned settings surface: time-of-day profile + intentions.
             Button {
                 showingSettings = true
             } label: {
