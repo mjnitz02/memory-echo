@@ -98,6 +98,7 @@ struct TodayView: View {
                     emptyState
                 } else {
                     bandList
+                    siriHint
                 }
             }
 
@@ -264,6 +265,21 @@ struct TodayView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity)
+    }
+
+    /// A whisper-quiet nudge toward the fastest capture path. In-app only (the
+    /// widgets stay chrome-free); it just reminds you the voice trigger exists so
+    /// you reach for it instead of opening the app. Phrasing matches a real Siri
+    /// trigger in MemoryEchoShortcuts (see AddAskIntent.swift).
+    private var siriHint: some View {
+        Text("\u{201C}Hey Siri, capture in MemoryEcho\u{201D}")
+            .font(.system(size: 13, weight: .regular))
+            .italic()
+            .foregroundStyle(.white.opacity(0.28))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 24)
+            .padding(.top, 10)
+            .padding(.bottom, 12)
     }
 
     // MARK: Add button
