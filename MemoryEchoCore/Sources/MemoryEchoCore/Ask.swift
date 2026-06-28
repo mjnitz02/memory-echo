@@ -28,6 +28,13 @@ public final class Ask {
     /// nil = open. One swipe sets this and the row vanishes (no separate delete).
     public var completedAt: Date?
 
+    /// The on-device model's chosen SF Symbol, resolved once after capture and
+    /// cached here so it isn't recomputed per render (and so the widget, which
+    /// can't run the model, shows the smart glyph too). nil until resolved —
+    /// `glyph` falls back to the offline matcher meanwhile. A pure cache: it's
+    /// derived from `title`, so clearing it just re-derives.
+    public var cachedGlyph: String?
+
     public init(
         title: String,
         effort: Effort = .quick,
@@ -69,9 +76,10 @@ public final class Ask {
 
     // MARK: Derived presentation
 
-    /// SF Symbol for this ask's title.
+    /// SF Symbol for this ask's title: the on-device model's cached pick once
+    /// resolved, otherwise the fast offline matcher (see GlyphResolver).
     public var glyph: String {
-        AskGlyph.symbol(for: title)
+        cachedGlyph ?? AskGlyph.symbol(for: title)
     }
 
     // MARK: Derived staleness (the Phase 3 shrink engine, evaluated `asOf` a

@@ -48,6 +48,8 @@ struct TodayView: View {
     @State private var profile = EffortProfile.load()
     /// Bridge from the Action Button / Siri add intent (see AddAskIntent).
     @State private var captureRouter = CaptureRouter.shared
+    /// Guards against overlapping glyph-backfill passes (see resolveMissingGlyphs).
+    @State private var resolvingGlyphs = false
 
     /// Ticks every minute so the order tracks hour boundaries (and midnight)
     /// without the app being reopened.
@@ -128,6 +130,8 @@ struct TodayView: View {
         .onReceive(minuteTick) { now = $0 }
         .onAppear(perform: consumePendingAdd)
         .onChange(of: captureRouter.pendingAdd) { consumePendingAdd() }
+        .task { await resolveMissingGlyphs() }
+        .onChange(of: openAsks.count) { Task { await resolveMissingGlyphs() } }
         .onOpenURL { url in
             // Deep links from the widget: memoryecho://add opens the capture sheet.
             if url.host == "add" { showingAdd = true }
@@ -310,6 +314,26 @@ struct TodayView: View {
         guard captureRouter.pendingAdd else { return }
         captureRouter.pendingAdd = false
         showingAdd = true
+    }
+
+    /// Fill in the on-device model's glyph for any open ask that doesn't have
+    /// one yet (fresh captures, Action-Button adds, seeded data). Best-effort:
+    /// asks the model serially, caches each pick, then persists + refreshes the
+    /// widgets once. The offline matcher already gives every ask a glyph, so
+    /// this only ever upgrades — and silently no-ops when the model's away.
+    private func resolveMissingGlyphs() async {
+        guard !resolvingGlyphs else { return }
+        resolvingGlyphs = true
+        defer { resolvingGlyphs = false }
+
+        var changed = false
+        for ask in openAsks where ask.cachedGlyph == nil {
+            if let symbol = await GlyphResolver.symbol(for: ask.title) {
+                ask.cachedGlyph = symbol
+                changed = true
+            }
+        }
+        if changed { persistAndRefreshWidgets() }
     }
 
     private func complete(_ ask: Ask) {
