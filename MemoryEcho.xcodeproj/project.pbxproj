@@ -68,22 +68,16 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		BB1C96612FEC72FF00ABE0FA /* MemoryEcho */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = MemoryEcho;
 			sourceTree = "<group>";
 		};
 		BB1C96712FEC730000ABE0FA /* MemoryEchoTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = MemoryEchoTests;
 			sourceTree = "<group>";
 		};
 		BB1C967B2FEC730000ABE0FA /* MemoryEchoUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = MemoryEchoUITests;
 			sourceTree = "<group>";
 		};
