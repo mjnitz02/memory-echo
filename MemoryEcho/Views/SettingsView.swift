@@ -36,6 +36,12 @@ struct SettingsView: View {
                 } label: {
                     row("Widgets", "square.grid.2x2", "How much they show, and their background")
                 }
+
+                NavigationLink {
+                    IntegrationsView()
+                } label: {
+                    row("Integrations", "mic", "Capture by Siri or the Action Button")
+                }
             }
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
