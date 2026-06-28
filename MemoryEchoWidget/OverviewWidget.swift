@@ -16,6 +16,7 @@ struct OverviewEntry: TimelineEntry {
     let date: Date
     let asks: [AskSnapshot]
     let intentions: [IntentionSnapshot]
+    var backgroundOpacity: Double = Tuning.defaultWidgetBackgroundOpacity
 
     static let placeholder = OverviewEntry(
         date: .now,
@@ -43,10 +44,12 @@ struct OverviewProvider: TimelineProvider {
     }
 
     private func loadEntry(now: Date = .now) -> OverviewEntry {
-        OverviewEntry(
+        let settings = WidgetSettings.load()
+        return OverviewEntry(
             date: now,
-            asks: WidgetStore.topAsks(now: now, limit: Tuning.widgetExtraLargeRows),
-            intentions: WidgetStore.showingIntentions(now: now, limit: Tuning.widgetIntentionExtraLargeRows)
+            asks: WidgetStore.topAsks(now: now, limit: settings.maxTasks),
+            intentions: WidgetStore.showingIntentions(now: now, limit: settings.maxIntentions),
+            backgroundOpacity: settings.backgroundOpacity
         )
     }
 }
@@ -89,7 +92,7 @@ struct OverviewWidgetEntryView: View {
             Spacer(minLength: 0)
         }
         .padding(14)
-        .containerBackground(.black, for: .widget)
+        .containerBackground(.black.opacity(entry.backgroundOpacity), for: .widget)
         .widgetURL(URL(string: "memoryecho://open"))
     }
 }

@@ -36,6 +36,11 @@ struct TodayView: View {
     @State private var showingSettings = false
     /// The ask whose accountability nudge dialog is open, if any.
     @State private var nudgingAsk: Ask?
+    /// The just-completed ask, still recoverable via the Undo toast. Cleared
+    /// when the window lapses (or on undo / a fresh completion).
+    @State private var recentlyCompleted: Ask?
+    /// The pending "hide the toast" timer, so a new completion can restart it.
+    @State private var undoDismissTask: Task<Void, Never>?
     /// Instant the shrink engine is evaluated against; refreshed on activation
     /// and once a minute so the time-of-day boost re-ranks as hours turn over.
     @State private var now: Date = .now
@@ -94,6 +99,14 @@ struct TodayView: View {
                 }
             }
 
+            if recentlyCompleted != nil {
+                undoToast
+                    .padding(.leading, 24)
+                    .padding(.bottom, 30)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+
             addButton
                 .padding(24)
         }
@@ -129,9 +142,14 @@ struct TodayView: View {
             presenting: nudgingAsk
         ) { ask in
             Button("I'll do it now") { complete(ask); nudgingAsk = nil }
-            Button("Give it room — reset") { withAnimation { ask.reset() }; nudgingAsk = nil }
+            Button("Give it room — reset") {
+                withAnimation { ask.reset() }
+                persistAndRefreshWidgets()
+                nudgingAsk = nil
+            }
             Button("Let it go — delete", role: .destructive) {
                 withAnimation { context.delete(ask) }
+                persistAndRefreshWidgets()
                 nudgingAsk = nil
             }
             Button("Keep it as is", role: .cancel) { nudgingAsk = nil }
@@ -176,6 +194,7 @@ struct TodayView: View {
                 ForEach(showingIntentions) { intention in
                     Button {
                         withAnimation(.easeOut(duration: 0.25)) { intention.dismiss() }
+                        persistAndRefreshWidgets()
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "sparkle")
@@ -259,6 +278,30 @@ struct TodayView: View {
         .buttonStyle(.plain)
     }
 
+    // MARK: Undo toast
+
+    /// A brief, low-key "Done · Undo" pill after a completion, giving a few
+    /// seconds to take it back before the ask settles as done.
+    private var undoToast: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.green)
+            Text("Done")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(.white)
+            Button("Undo", action: undoComplete)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(.white)
+                .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 12)
+        .background(Capsule().fill(.white.opacity(0.16)))
+        .overlay(Capsule().strokeBorder(.white.opacity(0.12)))
+        .shadow(color: .black.opacity(0.4), radius: 8, y: 4)
+    }
+
     // MARK: Actions
 
     /// Present the capture sheet if the add intent requested it, then clear the
@@ -273,8 +316,43 @@ struct TodayView: View {
         withAnimation(.easeOut(duration: 0.25)) {
             ask.completedAt = .now
         }
-        // The widget reads the same store but on its own timeline; nudge it to
-        // refresh now so a swiped-away ask disappears there too.
+        persistAndRefreshWidgets()
+        withAnimation { recentlyCompleted = ask }
+        scheduleUndoDismissal()
+    }
+
+    /// Put a just-completed ask back. Clears `completedAt`, so it re-enters the
+    /// open-asks @Query and slides back into the list.
+    private func undoComplete() {
+        guard let ask = recentlyCompleted else { return }
+        withAnimation(.easeOut(duration: 0.25)) { ask.completedAt = nil }
+        persistAndRefreshWidgets()
+        clearUndo()
+    }
+
+    /// Hide the toast after the undo window, unless a new completion or an undo
+    /// has already replaced/cancelled it.
+    private func scheduleUndoDismissal() {
+        undoDismissTask?.cancel()
+        undoDismissTask = Task {
+            try? await Task.sleep(for: .seconds(Tuning.undoWindowSeconds))
+            guard !Task.isCancelled else { return }
+            withAnimation { recentlyCompleted = nil }
+        }
+    }
+
+    private func clearUndo() {
+        undoDismissTask?.cancel()
+        undoDismissTask = nil
+        withAnimation { recentlyCompleted = nil }
+    }
+
+    /// SwiftData autosaves lazily, so an explicit save is what guarantees the
+    /// shared store is current *before* we ask the widgets to re-read it —
+    /// without this, a freshly completed/added ask lingers on the widget until
+    /// its next scheduled timeline.
+    private func persistAndRefreshWidgets() {
+        try? context.save()
         WidgetCenter.shared.reloadAllTimelines()
     }
 }

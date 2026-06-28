@@ -15,6 +15,7 @@ import WidgetKit
 struct IntentionsEntry: TimelineEntry {
     let date: Date
     let intentions: [IntentionSnapshot]
+    var backgroundOpacity: Double = Tuning.defaultWidgetBackgroundOpacity
 
     static let placeholder = IntentionsEntry(date: .now, intentions: [
         .init(id: "a", text: "Listen more than you talk"),
@@ -43,9 +44,11 @@ struct IntentionsProvider: TimelineProvider {
     }
 
     private func loadEntry(now: Date = .now) -> IntentionsEntry {
-        IntentionsEntry(
+        let settings = WidgetSettings.load()
+        return IntentionsEntry(
             date: now,
-            intentions: WidgetStore.showingIntentions(now: now, limit: Tuning.widgetIntentionMediumRows)
+            intentions: WidgetStore.showingIntentions(now: now, limit: settings.maxIntentions),
+            backgroundOpacity: settings.backgroundOpacity
         )
     }
 }
@@ -63,7 +66,7 @@ struct IntentionsWidgetEntryView: View {
             }
         }
         .padding(12)
-        .containerBackground(.black, for: .widget)
+        .containerBackground(.black.opacity(entry.backgroundOpacity), for: .widget)
     }
 }
 

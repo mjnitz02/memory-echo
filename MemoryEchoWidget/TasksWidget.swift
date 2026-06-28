@@ -14,6 +14,7 @@ import WidgetKit
 struct TasksEntry: TimelineEntry {
     let date: Date
     let asks: [AskSnapshot]
+    var backgroundOpacity: Double = Tuning.defaultWidgetBackgroundOpacity
 
     static let placeholder = TasksEntry(date: .now, asks: [
         .init(title: "Call the dentist", glyph: "phone.fill", effort: .quick, stop: .overdue),
@@ -36,7 +37,12 @@ struct TasksProvider: TimelineProvider {
     }
 
     private func loadEntry(now: Date = .now) -> TasksEntry {
-        TasksEntry(date: now, asks: WidgetStore.topAsks(now: now, limit: Tuning.widgetLargeRows))
+        let settings = WidgetSettings.load()
+        return TasksEntry(
+            date: now,
+            asks: WidgetStore.topAsks(now: now, limit: settings.maxTasks),
+            backgroundOpacity: settings.backgroundOpacity
+        )
     }
 }
 
@@ -65,7 +71,7 @@ struct TasksWidgetEntryView: View {
             }
         }
         .padding(12)
-        .containerBackground(.black, for: .widget)
+        .containerBackground(.black.opacity(entry.backgroundOpacity), for: .widget)
         .widgetURL(URL(string: "memoryecho://open"))
     }
 }
