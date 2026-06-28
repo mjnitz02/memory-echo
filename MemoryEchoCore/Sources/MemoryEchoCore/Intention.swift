@@ -17,6 +17,10 @@ import SwiftData
 
 @Model
 public final class Intention {
+    /// Stable identity, safe to pass across the app↔widget process boundary
+    /// (e.g. the widget's dismiss App Intent re-fetches by this). Object
+    /// pointers / PersistentIdentifiers aren't stable across processes.
+    public var id: UUID = UUID()
     public var text: String
     /// 6 / 12 / 24 / 48 — how often it echoes back.
     public var intervalHours: Int
@@ -30,6 +34,7 @@ public final class Intention {
         intervalHours: Int = Tuning.defaultIntentionIntervalHours,
         sortIndex: Int = 0
     ) {
+        id = UUID()
         self.text = text
         self.intervalHours = intervalHours
         lastDismissedAt = nil
