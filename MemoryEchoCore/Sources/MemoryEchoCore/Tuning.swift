@@ -56,11 +56,18 @@ public enum Tuning {
     // MARK: Widget
 
     /// How many asks each home-screen widget family lists at most.
-    public static let widgetMediumRows = 3
+    /// Tasks live in the Large widget and the top half of the Overview (XL).
     public static let widgetLargeRows = 8
     public static let widgetExtraLargeRows = 8
-    /// Upper bound the timeline provider needs to fetch (largest family).
+    /// Upper bound of asks the timeline provider needs to fetch (largest family).
     public static let widgetMaxRows = widgetLargeRows
+
+    /// How many showing intentions each family lists. The dedicated Intentions
+    /// widget is a short Medium strip; the Overview stacks a few under the tasks.
+    public static let widgetIntentionMediumRows = 4
+    public static let widgetIntentionExtraLargeRows = 4
+    /// Upper bound of intentions the timeline provider needs to fetch.
+    public static let widgetIntentionMaxRows = widgetIntentionMediumRows
 
     // MARK: Developer convenience
 

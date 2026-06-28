@@ -1,0 +1,202 @@
+//
+//  WidgetShared.swift
+//  MemoryEchoWidget
+//
+//  Pieces shared by the three home-screen widgets (Phase 7 — widget split):
+//    • Tasks       — Large, asks only + add button.
+//    • Intentions  — Medium, showing intentions; tap one to dismiss it.
+//    • Overview    — Extra Large, tasks stacked over intentions.
+//
+//  Snapshots are plain value types (timeline entries must never carry live
+//  @Model objects). The loader reads the SAME App-Group SwiftData store as the
+//  app, so a dismiss from the widget is just a write the app reads back.
+//
+
+import AppIntents
+import MemoryEchoCore
+import SwiftData
+import SwiftUI
+import WidgetKit
+
+// MARK: - Snapshots
+
+struct AskSnapshot: Identifiable {
+    let id: String
+    let title: String
+    let glyph: String
+    let effort: Effort
+    let stop: ColorStop
+
+    init(ask: Ask, now: Date) {
+        id = "\(ObjectIdentifier(ask))"
+        title = ask.title
+        glyph = ask.glyph
+        effort = ask.effort
+        stop = ask.colorStop(asOf: now)
+    }
+
+    /// Placeholder rows for previews / redacted state.
+    init(title: String, glyph: String, effort: Effort, stop: ColorStop) {
+        id = title
+        self.title = title
+        self.glyph = glyph
+        self.effort = effort
+        self.stop = stop
+    }
+}
+
+struct IntentionSnapshot: Identifiable {
+    /// The model's stable UUID (as a string) — handed to the dismiss intent so
+    /// it can re-fetch this exact intention from the widget process.
+    let id: String
+    let text: String
+
+    init(intention: Intention) {
+        id = intention.id.uuidString
+        text = intention.text
+    }
+
+    init(id: String, text: String) {
+        self.id = id
+        self.text = text
+    }
+}
+
+// MARK: - Reading the shared store
+
+enum WidgetStore {
+    /// Top asks by the same staleness spine the app's Today list uses.
+    static func topAsks(now: Date, limit: Int) -> [AskSnapshot] {
+        let context = ModelContext(MemoryEchoStore.container())
+        let descriptor = FetchDescriptor<Ask>(predicate: #Predicate { $0.completedAt == nil })
+        let asks = (try? context.fetch(descriptor)) ?? []
+        return asks
+            .sorted { a, b in
+                let ra = a.daysRemaining(asOf: now), rb = b.daysRemaining(asOf: now)
+                return ra != rb ? ra < rb : a.createdAt < b.createdAt
+            }
+            .prefix(limit)
+            .map { AskSnapshot(ask: $0, now: now) }
+    }
+
+    /// Intentions currently echoing back (not dismissed within their interval).
+    static func showingIntentions(now: Date, limit: Int) -> [IntentionSnapshot] {
+        let context = ModelContext(MemoryEchoStore.container())
+        let descriptor = FetchDescriptor<Intention>(sortBy: [SortDescriptor(\.sortIndex)])
+        let intentions = (try? context.fetch(descriptor)) ?? []
+        return intentions
+            .filter { $0.isShowing(asOf: now) && !$0.text.trimmingCharacters(in: .whitespaces).isEmpty }
+            .prefix(limit)
+            .map { IntentionSnapshot(intention: $0) }
+    }
+}
+
+// MARK: - Refresh cadence
+
+enum WidgetRefresh {
+    /// Refresh just after midnight so staleness colors/ordering advance a day.
+    static func nextMidnight(after date: Date = .now) -> Date {
+        Calendar.current.nextDate(
+            after: date,
+            matching: DateComponents(hour: 0, minute: 1),
+            matchingPolicy: .nextTime
+        ) ?? date.addingTimeInterval(6 * 3600)
+    }
+}
+
+// MARK: - Dismiss intent (interactive widget button)
+
+/// Tapping an intention chip runs this in the widget process: it flips the
+/// intention's `lastDismissedAt` in the shared store, so it hides here AND in
+/// the app until its interval re-elapses. `openAppWhenRun` stays false — the
+/// whole point is to dismiss in place without leaving the home screen.
+struct DismissIntentionIntent: AppIntent {
+    static let title: LocalizedStringResource = "Dismiss Intention"
+
+    @Parameter(title: "Intention ID")
+    var intentionID: String
+
+    init() {}
+
+    init(intentionID: String) {
+        self.intentionID = intentionID
+    }
+
+    func perform() async throws -> some IntentResult {
+        if let uuid = UUID(uuidString: intentionID) {
+            let context = ModelContext(MemoryEchoStore.container())
+            let descriptor = FetchDescriptor<Intention>(predicate: #Predicate { $0.id == uuid })
+            if let intention = try? context.fetch(descriptor).first {
+                intention.dismiss()
+                try? context.save()
+            }
+        }
+        WidgetCenter.shared.reloadAllTimelines()
+        return .result()
+    }
+}
+
+// MARK: - Shared row views
+
+/// A full-bleed task band: glyph + title over the effort×staleness gradient.
+/// Non-interactive everywhere — tapping a task always just opens the app.
+struct AskRow: View {
+    let ask: AskSnapshot
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: ask.glyph)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 16)
+            Text(ask.title)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AskPalette.gradient(effort: ask.effort, stop: ask.stop))
+        .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+    }
+}
+
+/// A tappable intention chip. The whole chip is a Button bound to the dismiss
+/// intent, so a tap quietly retires the echo until its interval comes round.
+struct IntentionChip: View {
+    let intention: IntentionSnapshot
+
+    var body: some View {
+        Button(intent: DismissIntentionIntent(intentionID: intention.id)) {
+            HStack(spacing: 8) {
+                Image(systemName: "sparkle")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.6))
+                Text(intention.text)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(.white.opacity(0.08)))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+/// A quiet empty-state line, centered.
+struct WidgetEmptyState: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 14, weight: .medium))
+            .foregroundStyle(.white.opacity(0.5))
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+    }
+}
