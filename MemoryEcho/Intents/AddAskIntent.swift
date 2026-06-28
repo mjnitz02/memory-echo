@@ -31,12 +31,28 @@ struct AddAskIntent: AppIntent {
 
 struct MemoryEchoShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
+        // Hands-free voice capture: speak the ask, it's saved, app never opens.
+        // App Shortcut phrases can't carry a free-form String parameter (only
+        // AppEntity/AppEnum), so these are bare triggers — Siri then prompts
+        // "What would you like to remember?" and you dictate the ask.
+        AppShortcut(
+            intent: QuickCaptureIntent(),
+            phrases: [
+                "Quick capture in \(.applicationName)",
+                "Capture in \(.applicationName)",
+                "Remember something in \(.applicationName)"
+            ],
+            shortTitle: "Quick Capture",
+            systemImageName: "mic.fill"
+        )
+
+        // Open-to-add: brings the app up on the keyboard. This is the Action
+        // Button path, where you're already looking at the phone and want to type.
         AppShortcut(
             intent: AddAskIntent(),
             phrases: [
-                "Add an ask to \(.applicationName)",
                 "New ask in \(.applicationName)",
-                "Capture in \(.applicationName)"
+                "Open \(.applicationName) to capture"
             ],
             shortTitle: "Add to MemoryEcho",
             systemImageName: "plus.circle.fill"
