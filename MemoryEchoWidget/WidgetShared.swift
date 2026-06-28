@@ -142,6 +142,10 @@ struct DismissIntentionIntent: AppIntent {
 /// Non-interactive everywhere — tapping a task always just opens the app.
 struct AskRow: View {
     let ask: AskSnapshot
+    /// When true the band stretches to fill the height it's given, so a column
+    /// of rows divides the widget evenly (fewer tasks → taller bands). The
+    /// Tasks widget opts in; Overview keeps compact rows.
+    var fillHeight = false
 
     var body: some View {
         HStack(spacing: 8) {
@@ -157,7 +161,7 @@ struct AskRow: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: fillHeight ? .infinity : nil, alignment: .leading)
         .background(AskPalette.gradient(effort: ask.effort, stop: ask.stop))
         .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
     }
@@ -167,23 +171,28 @@ struct AskRow: View {
 /// intent, so a tap quietly retires the echo until its interval comes round.
 struct IntentionChip: View {
     let intention: IntentionSnapshot
+    /// When true the chip stretches to fill the height it's given, so a row of
+    /// chips fills the widget. The Echoes widget (horizontal) opts in; Overview
+    /// keeps content-height chips in its vertical stack.
+    var fillHeight = false
 
     var body: some View {
         Button(intent: DismissIntentionIntent(intentionID: intention.id)) {
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 Image(systemName: "sparkle")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.6))
+                    .font(.system(size: 11, weight: .semibold))
                 Text(intention.text)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-                Spacer(minLength: 0)
+                    .font(.system(size: 14, weight: .semibold))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.7)
+                    .multilineTextAlignment(.center)
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 7)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(.white.opacity(0.08)))
+            .foregroundStyle(.white.opacity(0.85))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity, maxHeight: fillHeight ? .infinity : nil)
+            .background(Capsule().fill(.white.opacity(0.10)))
+            .overlay(Capsule().strokeBorder(.white.opacity(0.12)))
         }
         .buttonStyle(.plain)
     }

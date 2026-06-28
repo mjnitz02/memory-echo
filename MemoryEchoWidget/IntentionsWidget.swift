@@ -57,12 +57,17 @@ struct IntentionsWidgetEntryView: View {
     var entry: IntentionsEntry
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        Group {
             if entry.intentions.isEmpty {
                 WidgetEmptyState(text: "No echoes right now")
             } else {
-                ForEach(entry.intentions) { IntentionChip(intention: $0) }
-                Spacer(minLength: 0)
+                // Echoes ride side by side, dividing the strip's width among the
+                // active count — fewer echoes read as wider chips (matching the
+                // app's echo chips). Up to the widget's max-intentions setting.
+                HStack(spacing: 8) {
+                    ForEach(entry.intentions) { IntentionChip(intention: $0, fillHeight: true) }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .padding(12)

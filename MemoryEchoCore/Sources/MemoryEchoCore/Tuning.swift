@@ -39,7 +39,7 @@ public enum Tuning {
     // MARK: Intentions
 
     /// The interval choices (hours) an intention can echo back on.
-    public static let intentionIntervalChoices = [6, 12, 24, 48]
+    public static let intentionIntervalChoices = [3, 6, 12, 24, 48]
     /// Default interval for a freshly-added intention.
     public static let defaultIntentionIntervalHours = 24
 
