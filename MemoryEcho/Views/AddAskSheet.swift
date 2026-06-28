@@ -113,6 +113,9 @@ struct AddAskSheet: View {
     private func add() {
         guard canAdd else { return }
         context.insert(Ask(title: trimmedTitle, effort: effort, horizon: horizon))
+        // Save before reloading so the widget's fresh read sees the new ask;
+        // SwiftData's autosave is too lazy to beat the timeline reload otherwise.
+        try? context.save()
         WidgetCenter.shared.reloadAllTimelines()
         dismiss()
     }

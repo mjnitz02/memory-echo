@@ -30,6 +30,12 @@ struct SettingsView: View {
                 } label: {
                     row("Intentions", "sparkles", "Little reminders that echo back")
                 }
+
+                NavigationLink {
+                    WidgetSettingsView()
+                } label: {
+                    row("Widgets", "square.grid.2x2", "How much they show, and their background")
+                }
             }
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)

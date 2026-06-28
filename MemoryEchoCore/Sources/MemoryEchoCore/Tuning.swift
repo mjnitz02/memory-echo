@@ -48,26 +48,28 @@ public enum Tuning {
     /// Minimum height of a full-bleed task band.
     public static let bandMinHeight: CGFloat = 84
 
+    /// How long a completed ask stays recoverable via the Undo toast before it
+    /// quietly settles as done.
+    public static let undoWindowSeconds: Double = 5
+
     // MARK: App Group
 
     /// Shared container id so the app and the widget read one SwiftData store.
     public static let appGroupID = "group.org.mattnitzken.MemoryEcho"
 
-    // MARK: Widget
+    // MARK: Widget (user-tunable via WidgetSettings)
 
-    /// How many asks each home-screen widget family lists at most.
-    /// Tasks live in the Large widget and the top half of the Overview (XL).
-    public static let widgetLargeRows = 8
-    public static let widgetExtraLargeRows = 8
-    /// Upper bound of asks the timeline provider needs to fetch (largest family).
-    public static let widgetMaxRows = widgetLargeRows
+    /// How many tasks any task-showing widget lists — user-set within this range.
+    public static let widgetTaskCountRange = 3 ... 10
+    public static let defaultWidgetMaxTasks = 8
 
-    /// How many showing intentions each family lists. The dedicated Intentions
-    /// widget is a short Medium strip; the Overview stacks a few under the tasks.
-    public static let widgetIntentionMediumRows = 4
-    public static let widgetIntentionExtraLargeRows = 4
-    /// Upper bound of intentions the timeline provider needs to fetch.
-    public static let widgetIntentionMaxRows = widgetIntentionMediumRows
+    /// How many intentions any intention-showing widget lists.
+    public static let widgetIntentionCountRange = 1 ... 5
+    public static let defaultWidgetMaxIntentions = 4
+
+    /// Black widget background opacity, so the wallpaper can show through. 1 =
+    /// solid black (the default look).
+    public static let defaultWidgetBackgroundOpacity: Double = 1.0
 
     // MARK: Developer convenience
 
