@@ -14,13 +14,17 @@ import WidgetKit
 struct TasksEntry: TimelineEntry {
     let date: Date
     let asks: [AskSnapshot]
+    /// The user's "tasks to display" setting — the band column is divided into
+    /// this many fixed slots, so each band is 1/maxTasks of the height
+    /// regardless of how many are actually showing.
+    var maxTasks: Int = Tuning.defaultWidgetMaxTasks
     var backgroundOpacity: Double = Tuning.defaultWidgetBackgroundOpacity
 
     static let placeholder = TasksEntry(date: .now, asks: [
         .init(title: "Call the dentist", glyph: "phone.fill", effort: .quick, stop: .overdue),
         .init(title: "Fix the garden gate", glyph: "wrench.and.screwdriver.fill", effort: .long, stop: .today),
         .init(title: "Buy groceries", glyph: "cart.fill", effort: .quick, stop: .tomorrow)
-    ])
+    ], maxTasks: 3)
 }
 
 struct TasksProvider: TimelineProvider {
@@ -41,6 +45,7 @@ struct TasksProvider: TimelineProvider {
         return TasksEntry(
             date: now,
             asks: WidgetStore.topAsks(now: now, limit: settings.maxTasks),
+            maxTasks: settings.maxTasks,
             backgroundOpacity: settings.backgroundOpacity
         )
     }
@@ -52,13 +57,13 @@ struct TasksWidgetEntryView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text("Today")
+                Text("Memory")
                     .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(.white)
                 Spacer()
                 Link(destination: URL(string: "memoryecho://add")!) {
                     Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(.system(size: 36, weight: .semibold))
                         .foregroundStyle(.white.opacity(0.9))
                 }
             }
@@ -66,8 +71,16 @@ struct TasksWidgetEntryView: View {
             if entry.asks.isEmpty {
                 WidgetEmptyState(text: "All clear ✨")
             } else {
-                ForEach(entry.asks) { AskRow(ask: $0) }
-                Spacer(minLength: 0)
+                // The column is divided into `maxTasks` equal slots: each band is
+                // 1/maxTasks of the height, and any unfilled slots stay empty
+                // (so 2 shown of 5 set → two bands at 20%, not 50%).
+                ForEach(entry.asks) { AskRow(ask: $0, fillHeight: true) }
+                let emptySlots = max(0, entry.maxTasks - entry.asks.count)
+                if emptySlots > 0 {
+                    ForEach(0 ..< emptySlots, id: \.self) { _ in
+                        Color.clear.frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                }
             }
         }
         .padding(12)
