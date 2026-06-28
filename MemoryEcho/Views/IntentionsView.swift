@@ -11,6 +11,7 @@
 import MemoryEchoCore
 import SwiftData
 import SwiftUI
+import WidgetKit
 
 struct IntentionsView: View {
     @Environment(\.modelContext) private var context
@@ -48,7 +49,7 @@ struct IntentionsView: View {
         .navigationTitle("Intentions")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { EditButton() }
-        .onDisappear(perform: pruneEmpties)
+        .onDisappear(perform: finishEditing)
     }
 
     // MARK: A single intention row
@@ -109,6 +110,16 @@ struct IntentionsView: View {
         for index in offsets {
             context.delete(intentions[index])
         }
+        persistAndRefreshWidgets()
+    }
+
+    /// Leaving the editor: drop blanks, then persist + nudge the widgets so any
+    /// add / rename / re-interval made here actually reaches them. Unlike the
+    /// rest of the app, this screen's edits happen via bindings with no per-edit
+    /// save, so without this the widget keeps showing a stale set of echoes.
+    private func finishEditing() {
+        pruneEmpties()
+        persistAndRefreshWidgets()
     }
 
     /// Drop intentions left blank (e.g. an "add" the user never named).
@@ -119,6 +130,13 @@ struct IntentionsView: View {
         for intention in blanks {
             context.delete(intention)
         }
+    }
+
+    /// SwiftData autosaves lazily, so an explicit save is what guarantees the
+    /// shared store is current before the widgets re-read it (see TodayView).
+    private func persistAndRefreshWidgets() {
+        try? context.save()
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     private func intervalLabel(_ hours: Int) -> String {
