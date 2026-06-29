@@ -19,7 +19,14 @@ struct MemoryEchoApp: App {
         WindowGroup {
             RootView()
                 .task {
-                    SampleData.seedIfNeeded(sharedModelContainer.mainContext)
+                    let context = sharedModelContainer.mainContext
+                    SampleData.seedIfNeeded(context)
+                    // Heal the one-time migration artifact where adding Ask.id
+                    // stamped one shared UUID onto every pre-existing ask.
+                    try? StoreMaintenance.deduplicateAskIDs(in: context)
+                    // Drop done items that are no longer undoable, so finished
+                    // asks / long-term memories don't accumulate in the store.
+                    try? StoreMaintenance.purgeCompleted(in: context)
                 }
         }
         .modelContainer(sharedModelContainer)

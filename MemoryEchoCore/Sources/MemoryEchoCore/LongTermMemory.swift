@@ -19,10 +19,13 @@ import SwiftData
 public final class LongTermMemory {
     /// Stable identity, safe across the app↔widget process boundary.
     public var id: UUID = UUID()
-    public var text: String
+    /// Every stored property carries a default so the model stays
+    /// CloudKit-compatible (a future SwiftData+CloudKit flip needs every
+    /// attribute optional or defaulted) — the init still sets real values.
+    public var text: String = ""
     /// The one decision at capture: high priority or not. Default off.
-    public var isHighPriority: Bool
-    public var createdAt: Date
+    public var isHighPriority: Bool = false
+    public var createdAt: Date = Date.now
     /// nil = still parked on the list. Set when swiped away — kept rather than
     /// hard-deleted, so a later undo stays possible (mirrors Ask.completedAt).
     public var completedAt: Date?
