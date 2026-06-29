@@ -22,6 +22,10 @@ struct TasksEntry: TimelineEntry {
     /// Lights the lime review echo left of the "+": long-term memory has gone
     /// unopened past its interval (see LongTermConfig).
     var longTermEchoActive = false
+    /// Open asks that didn't fit in the `maxTasks` slots. Drives the quiet
+    /// "N more · not shown" footer — a passive truth-signal that asks are
+    /// piling up, only ever shown when the column is already full.
+    var hiddenCount = 0
 
     static let placeholder = TasksEntry(date: .now, asks: [
         .init(title: "Call the dentist", glyph: "phone.fill", effort: .quick, stop: .overdue),
@@ -47,12 +51,15 @@ struct TasksProvider: TimelineProvider {
         let settings = WidgetSettings.load()
         let hasLongTerm = WidgetStore.longTermOpenCount() > 0
         let echo = LongTermConfig.load().echoIsActive(hasItems: hasLongTerm, now: now)
+        let asks = WidgetStore.topAsks(now: now, limit: settings.maxTasks)
+        let hidden = max(0, WidgetStore.openAskCount() - asks.count)
         return TasksEntry(
             date: now,
-            asks: WidgetStore.topAsks(now: now, limit: settings.maxTasks),
+            asks: asks,
             maxTasks: settings.maxTasks,
             backgroundOpacity: settings.backgroundOpacity,
-            longTermEchoActive: echo
+            longTermEchoActive: echo,
+            hiddenCount: hidden
         )
     }
 }
@@ -92,6 +99,14 @@ struct TasksWidgetEntryView: View {
                     ForEach(0 ..< emptySlots, id: \.self) { _ in
                         Color.clear.frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
+                }
+                // Only ever shows when the column is full (hidden > 0 implies no
+                // empty slots), so it never competes with the filler above.
+                if entry.hiddenCount > 0 {
+                    Text("\(entry.hiddenCount) more · not shown")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.4))
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
         }

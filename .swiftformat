@@ -4,8 +4,9 @@
 
 --swiftversion 6.0
 
-# Paths SwiftFormat should never touch.
---exclude .build,MemoryEchoCore/.build,DerivedData,**/.build
+# Paths SwiftFormat should never touch. `build` is where `make deploy`/`make ipa`
+# drop device-build artifacts — gitignored, so kept out of linting too.
+--exclude .build,MemoryEchoCore/.build,DerivedData,build,**/.build
 
 # A light, opinionated baseline — mostly defaults with a few choices spelled out.
 --self remove                 # drop redundant `self.`

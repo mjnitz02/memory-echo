@@ -78,6 +78,14 @@ enum WidgetStore {
         rankedAsks(openAsks(), now: now, limit: limit)
     }
 
+    /// Total open (incomplete) asks. The Tasks widget shows only `maxTasks` of
+    /// these; the difference is the honest "still piling up" footer count.
+    static func openAskCount() -> Int {
+        let context = ModelContext(MemoryEchoStore.container())
+        let descriptor = FetchDescriptor<Ask>(predicate: #Predicate { $0.completedAt == nil })
+        return (try? context.fetchCount(descriptor)) ?? 0
+    }
+
     /// How many long-term memories are still parked (open). Only the count
     /// matters here — it gates the review echo (an empty list never nags).
     static func longTermOpenCount() -> Int {
