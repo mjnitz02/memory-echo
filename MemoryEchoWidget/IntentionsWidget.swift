@@ -33,14 +33,20 @@ struct IntentionsProvider: TimelineProvider {
     }
 
     func getTimeline(in _: Context, completion: @escaping (Timeline<IntentionsEntry>) -> Void) {
-        // An intention can echo back mid-day, so refresh on the next hour as well
-        // as at midnight — whichever comes first.
-        let nextHour = Calendar.current.nextDate(
-            after: .now,
-            matching: DateComponents(minute: 0),
-            matchingPolicy: .nextTime
-        ) ?? Date.now.addingTimeInterval(3600)
-        completion(Timeline(entries: [loadEntry()], policy: .after(nextHour)))
+        // An intention can echo back at any minute (its dismissal + interval), so
+        // rather than poll hourly we plot one entry at each pending echo moment —
+        // the system flips each on at the exact second. `.atEnd` asks for a fresh
+        // timeline once they're spent (a user dismiss pushes a reload in between).
+        let settings = WidgetSettings.load()
+        let entries = WidgetStore.intentionSlices(now: .now, limit: settings.maxIntentions)
+            .map {
+                IntentionsEntry(
+                    date: $0.date,
+                    intentions: $0.intentions,
+                    backgroundOpacity: settings.backgroundOpacity
+                )
+            }
+        completion(Timeline(entries: entries, policy: .atEnd))
     }
 
     private func loadEntry(now: Date = .now) -> IntentionsEntry {
