@@ -1,6 +1,10 @@
 # macOS
 .DS_Store
 
+# Make: per-machine overrides + on-device build output
+Makefile.local
+build/
+
 # Xcode
 #
 # gitignore contributors: remember to update Global/Xcode.gitignore, Objective-C.gitignore & Swift.gitignore

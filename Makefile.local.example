@@ -1,0 +1,6 @@
+# Copy this file to Makefile.local and fill in your values.
+# Makefile.local is gitignored, so per-machine settings stay off the repo.
+
+# Your phone's CoreDevice identifier, used by `make deploy`.
+# Find it with: xcrun devicectl list devices
+DEVICE_ID = 00000000-0000-0000-0000-000000000000
