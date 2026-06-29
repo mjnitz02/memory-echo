@@ -18,6 +18,10 @@ import SwiftUI
 import WidgetKit
 
 struct TodayView: View {
+    /// Switch to the Long Term screen (provided by RootView; fired by the header
+    /// swipe). Working Memory otherwise stays exactly as it was.
+    let onSwitchScreens: () -> Void
+
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
 
@@ -31,6 +35,11 @@ struct TodayView: View {
 
     @Query(sort: \Intention.sortIndex, order: .forward)
     private var intentions: [Intention]
+
+    /// Open long-term memories — only their presence matters here, for deciding
+    /// whether the review echo can light (an empty list never nags).
+    @Query(filter: #Predicate<LongTermMemory> { $0.completedAt == nil })
+    private var longTermItems: [LongTermMemory]
 
     @State private var showingAdd = false
     @State private var showingSettings = false
@@ -166,29 +175,20 @@ struct TodayView: View {
     // MARK: Header
 
     private var header: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("MemoryEcho")
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundStyle(.white)
-                Text(Date.now.formatted(.dateTime.weekday(.wide).month().day()))
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.45))
-            }
-            Spacer()
-            // The one sanctioned settings surface: time-of-day profile + intentions.
-            Button {
-                showingSettings = true
-            } label: {
-                Image(systemName: "gearshape")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.5))
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.horizontal, 24)
-        .padding(.top, 8)
-        .padding(.bottom, 16)
+        MemoryHeader(
+            title: "Working Memory",
+            subtitle: Date.now.formatted(.dateTime.weekday(.wide).month().day()),
+            echoActive: longTermEchoActive,
+            onSettings: { showingSettings = true },
+            onSwipe: onSwitchScreens
+        )
+    }
+
+    /// Whether the lime "go look at Long Term" echo should show by the gear:
+    /// there's something parked there and it's been long enough since it was last
+    /// opened (see LongTermConfig / Scheduling). Re-evaluated as `now` ticks.
+    private var longTermEchoActive: Bool {
+        LongTermConfig.load().echoIsActive(hasItems: !longTermItems.isEmpty, now: now)
     }
 
     // MARK: Intention chips

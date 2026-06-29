@@ -79,6 +79,14 @@ enum WidgetStore {
             .map { AskSnapshot(ask: $0, now: now) }
     }
 
+    /// How many long-term memories are still parked (open). Only the count
+    /// matters here — it gates the review echo (an empty list never nags).
+    static func longTermOpenCount() -> Int {
+        let context = ModelContext(MemoryEchoStore.container())
+        let descriptor = FetchDescriptor<LongTermMemory>(predicate: #Predicate { $0.completedAt == nil })
+        return (try? context.fetchCount(descriptor)) ?? 0
+    }
+
     /// Intentions currently echoing back (not dismissed within their interval).
     static func showingIntentions(now: Date, limit: Int) -> [IntentionSnapshot] {
         let context = ModelContext(MemoryEchoStore.container())

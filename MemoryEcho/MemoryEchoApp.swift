@@ -17,7 +17,7 @@ struct MemoryEchoApp: App {
 
     var body: some Scene {
         WindowGroup {
-            TodayView()
+            RootView()
                 .task {
                     SampleData.seedIfNeeded(sharedModelContainer.mainContext)
                 }

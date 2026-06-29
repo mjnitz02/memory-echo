@@ -43,6 +43,14 @@ public enum Tuning {
     /// Default interval for a freshly-added intention.
     public static let defaultIntentionIntervalHours = 24
 
+    // MARK: Long-term memory (review echo)
+
+    /// How often the Long Term screen nudges to be re-read, in days — user-set
+    /// within these choices. The echo (a lime waveform by the gear / widget "+")
+    /// lights up once it's been this long since the screen was last opened.
+    public static let longTermReviewIntervalChoices = [2, 3, 4, 7, 14]
+    public static let defaultLongTermReviewIntervalDays = 4
+
     // MARK: Today list layout
 
     /// Minimum height of a full-bleed task band.
