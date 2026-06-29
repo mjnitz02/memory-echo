@@ -11,12 +11,17 @@
 //  all land in later phases; this is the skeleton they hang on.
 //
 
+import Combine
 import MemoryEchoCore
 import SwiftData
 import SwiftUI
 import WidgetKit
 
 struct TodayView: View {
+    /// Switch to the Long Term screen (provided by RootView; fired by the header
+    /// swipe). Working Memory otherwise stays exactly as it was.
+    let onSwitchScreens: () -> Void
+
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
 
@@ -31,25 +36,60 @@ struct TodayView: View {
     @Query(sort: \Intention.sortIndex, order: .forward)
     private var intentions: [Intention]
 
+    /// Open long-term memories — only their presence matters here, for deciding
+    /// whether the review echo can light (an empty list never nags).
+    @Query(filter: #Predicate<LongTermMemory> { $0.completedAt == nil })
+    private var longTermItems: [LongTermMemory]
+
     @State private var showingAdd = false
+    @State private var showingSettings = false
     /// The ask whose accountability nudge dialog is open, if any.
     @State private var nudgingAsk: Ask?
-    /// Instant the shrink engine is evaluated against; refreshed on activation.
+    /// The just-completed ask, still recoverable via the Undo toast. Cleared
+    /// when the window lapses (or on undo / a fresh completion).
+    @State private var recentlyCompleted: Ask?
+    /// The pending "hide the toast" timer, so a new completion can restart it.
+    @State private var undoDismissTask: Task<Void, Never>?
+    /// Instant the shrink engine is evaluated against; refreshed on activation
+    /// and once a minute so the time-of-day boost re-ranks as hours turn over.
     @State private var now: Date = .now
+    /// The time-of-day effort profile, reloaded when the settings sheet closes.
+    @State private var profile = EffortProfile.load()
+    /// Bridge from the Action Button / Siri add intent (see AddAskIntent).
+    @State private var captureRouter = CaptureRouter.shared
+    /// Guards against overlapping glyph-backfill passes (see resolveMissingGlyphs).
+    @State private var resolvingGlyphs = false
 
-    /// Staleness is priority: fewest days remaining floats to the top, oldest
-    /// first as a tie-break. The shrink engine (Scheduling) does the math.
+    /// Ticks every minute so the order tracks hour boundaries (and midnight)
+    /// without the app being reopened.
+    private let minuteTick = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
+
+    /// Staleness is the spine: fewest days remaining floats to the top. Among
+    /// similarly-stale asks, the one whose effort matches the current hour's
+    /// preference gets a gentle boost (Scheduling.todaySortValue); oldest first
+    /// breaks any remaining tie.
     private var orderedAsks: [Ask] {
-        openAsks.sorted { a, b in
-            let ra = a.daysRemaining(asOf: now)
-            let rb = b.daysRemaining(asOf: now)
-            if ra != rb { return ra < rb }
+        let preferred = profile.preferredEffort(asOf: now)
+        return openAsks.sorted { a, b in
+            let va = Scheduling.todaySortValue(
+                daysRemaining: a.daysRemaining(asOf: now),
+                effort: a.effort,
+                preferredEffort: preferred
+            )
+            let vb = Scheduling.todaySortValue(
+                daysRemaining: b.daysRemaining(asOf: now),
+                effort: b.effort,
+                preferredEffort: preferred
+            )
+            if va != vb { return va < vb }
             return a.createdAt < b.createdAt
         }
     }
 
+    /// Intentions currently echoing back — dismissed ones reappear once their
+    /// interval elapses. Re-evaluated as `now` advances (minute tick / activation).
     private var showingIntentions: [Intention] {
-        intentions.filter(\.isShowing)
+        intentions.filter { $0.isShowing(asOf: now) }
     }
 
     var body: some View {
@@ -67,7 +107,16 @@ struct TodayView: View {
                     emptyState
                 } else {
                     bandList
+                    siriHint
                 }
+            }
+
+            if recentlyCompleted != nil {
+                undoToast
+                    .padding(.leading, 24)
+                    .padding(.bottom, 30)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 
             addButton
@@ -77,9 +126,22 @@ struct TodayView: View {
         .sheet(isPresented: $showingAdd) {
             AddAskSheet()
         }
+        .sheet(
+            isPresented: $showingSettings,
+            onDismiss: { profile = EffortProfile.load() },
+            content: { SettingsView() }
+        )
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { now = .now }
+            if phase == .active {
+                now = .now
+                profile = EffortProfile.load()
+            }
         }
+        .onReceive(minuteTick) { now = $0 }
+        .onAppear(perform: consumePendingAdd)
+        .onChange(of: captureRouter.pendingAdd) { consumePendingAdd() }
+        .task { await resolveMissingGlyphs() }
+        .onChange(of: openAsks.count) { Task { await resolveMissingGlyphs() } }
         .onOpenURL { url in
             // Deep links from the widget: memoryecho://add opens the capture sheet.
             if url.host == "add" { showingAdd = true }
@@ -94,9 +156,14 @@ struct TodayView: View {
             presenting: nudgingAsk
         ) { ask in
             Button("I'll do it now") { complete(ask); nudgingAsk = nil }
-            Button("Give it room — reset") { withAnimation { ask.reset() }; nudgingAsk = nil }
+            Button("Give it room — reset") {
+                withAnimation { ask.reset() }
+                persistAndRefreshWidgets()
+                nudgingAsk = nil
+            }
             Button("Let it go — delete", role: .destructive) {
                 withAnimation { context.delete(ask) }
+                persistAndRefreshWidgets()
                 nudgingAsk = nil
             }
             Button("Keep it as is", role: .cancel) { nudgingAsk = nil }
@@ -108,24 +175,20 @@ struct TodayView: View {
     // MARK: Header
 
     private var header: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("MemoryEcho")
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundStyle(.white)
-                Text(Date.now.formatted(.dateTime.weekday(.wide).month().day()))
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.45))
-            }
-            Spacer()
-            // Settings gear is a placeholder — the time-of-day profile lands later.
-            Image(systemName: "gearshape")
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.5))
-        }
-        .padding(.horizontal, 24)
-        .padding(.top, 8)
-        .padding(.bottom, 16)
+        MemoryHeader(
+            title: "Working Memory",
+            subtitle: Date.now.formatted(.dateTime.weekday(.wide).month().day()),
+            echoActive: longTermEchoActive,
+            onSettings: { showingSettings = true },
+            onSwipe: onSwitchScreens
+        )
+    }
+
+    /// Whether the lime "go look at Long Term" echo should show by the gear:
+    /// there's something parked there and it's been long enough since it was last
+    /// opened (see LongTermConfig / Scheduling). Re-evaluated as `now` ticks.
+    private var longTermEchoActive: Bool {
+        LongTermConfig.load().echoIsActive(hasItems: !longTermItems.isEmpty, now: now)
     }
 
     // MARK: Intention chips
@@ -136,6 +199,7 @@ struct TodayView: View {
                 ForEach(showingIntentions) { intention in
                     Button {
                         withAnimation(.easeOut(duration: 0.25)) { intention.dismiss() }
+                        persistAndRefreshWidgets()
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "sparkle")
@@ -203,6 +267,21 @@ struct TodayView: View {
         .frame(maxWidth: .infinity)
     }
 
+    /// A whisper-quiet nudge toward the fastest capture path. In-app only (the
+    /// widgets stay chrome-free); it just reminds you the voice trigger exists so
+    /// you reach for it instead of opening the app. Phrasing matches a real Siri
+    /// trigger in MemoryEchoShortcuts (see AddAskIntent.swift).
+    private var siriHint: some View {
+        Text("\u{201C}Hey Siri, capture in MemoryEcho\u{201D}")
+            .font(.system(size: 13, weight: .regular))
+            .italic()
+            .foregroundStyle(.white.opacity(0.28))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 24)
+            .padding(.top, 10)
+            .padding(.bottom, 12)
+    }
+
     // MARK: Add button
 
     private var addButton: some View {
@@ -219,14 +298,101 @@ struct TodayView: View {
         .buttonStyle(.plain)
     }
 
+    // MARK: Undo toast
+
+    /// A brief, low-key "Done · Undo" pill after a completion, giving a few
+    /// seconds to take it back before the ask settles as done.
+    private var undoToast: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.green)
+            Text("Done")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(.white)
+            Button("Undo", action: undoComplete)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(.white)
+                .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 12)
+        .background(Capsule().fill(.white.opacity(0.16)))
+        .overlay(Capsule().strokeBorder(.white.opacity(0.12)))
+        .shadow(color: .black.opacity(0.4), radius: 8, y: 4)
+    }
+
     // MARK: Actions
+
+    /// Present the capture sheet if the add intent requested it, then clear the
+    /// flag. Covers cold launch (onAppear) and warm foreground (onChange).
+    private func consumePendingAdd() {
+        guard captureRouter.pendingAdd else { return }
+        captureRouter.pendingAdd = false
+        showingAdd = true
+    }
+
+    /// Fill in the on-device model's glyph for any open ask that doesn't have
+    /// one yet (fresh captures, Action-Button adds, seeded data). Best-effort:
+    /// asks the model serially, caches each pick, then persists + refreshes the
+    /// widgets once. The offline matcher already gives every ask a glyph, so
+    /// this only ever upgrades — and silently no-ops when the model's away.
+    private func resolveMissingGlyphs() async {
+        guard !resolvingGlyphs else { return }
+        resolvingGlyphs = true
+        defer { resolvingGlyphs = false }
+
+        var changed = false
+        for ask in openAsks where ask.cachedGlyph == nil {
+            if let symbol = await GlyphResolver.symbol(for: ask.title) {
+                ask.cachedGlyph = symbol
+                changed = true
+            }
+        }
+        if changed { persistAndRefreshWidgets() }
+    }
 
     private func complete(_ ask: Ask) {
         withAnimation(.easeOut(duration: 0.25)) {
             ask.completedAt = .now
         }
-        // The widget reads the same store but on its own timeline; nudge it to
-        // refresh now so a swiped-away ask disappears there too.
+        persistAndRefreshWidgets()
+        withAnimation { recentlyCompleted = ask }
+        scheduleUndoDismissal()
+    }
+
+    /// Put a just-completed ask back. Clears `completedAt`, so it re-enters the
+    /// open-asks @Query and slides back into the list.
+    private func undoComplete() {
+        guard let ask = recentlyCompleted else { return }
+        withAnimation(.easeOut(duration: 0.25)) { ask.completedAt = nil }
+        persistAndRefreshWidgets()
+        clearUndo()
+    }
+
+    /// Hide the toast after the undo window, unless a new completion or an undo
+    /// has already replaced/cancelled it.
+    private func scheduleUndoDismissal() {
+        undoDismissTask?.cancel()
+        undoDismissTask = Task {
+            try? await Task.sleep(for: .seconds(Tuning.undoWindowSeconds))
+            guard !Task.isCancelled else { return }
+            withAnimation { recentlyCompleted = nil }
+        }
+    }
+
+    private func clearUndo() {
+        undoDismissTask?.cancel()
+        undoDismissTask = nil
+        withAnimation { recentlyCompleted = nil }
+    }
+
+    /// SwiftData autosaves lazily, so an explicit save is what guarantees the
+    /// shared store is current *before* we ask the widgets to re-read it —
+    /// without this, a freshly completed/added ask lingers on the widget until
+    /// its next scheduled timeline.
+    private func persistAndRefreshWidgets() {
+        try? context.save()
         WidgetCenter.shared.reloadAllTimelines()
     }
 }

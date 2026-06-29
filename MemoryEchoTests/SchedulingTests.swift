@@ -55,12 +55,43 @@ struct SchedulingTests {
     }
 
     @Test func nudgeOnlyWhenOpenAndStuckPastThreshold() {
-        // Threshold is Tuning.nudgeThresholdDays (−2): exactly −2 nudges, −1 doesn't.
+        // Threshold is Tuning.nudgeThresholdDays (−1): the first overdue day
+        // nudges; today (0) does not.
+        #expect(Scheduling.needsNudge(daysRemaining: -1, isOpen: true) == true)
         #expect(Scheduling.needsNudge(daysRemaining: -2, isOpen: true) == true)
         #expect(Scheduling.needsNudge(daysRemaining: -3, isOpen: true) == true)
-        #expect(Scheduling.needsNudge(daysRemaining: -1, isOpen: true) == false)
         #expect(Scheduling.needsNudge(daysRemaining: 0, isOpen: true) == false)
         // A completed ask never nudges, however overdue.
         #expect(Scheduling.needsNudge(daysRemaining: -5, isOpen: false) == false)
+    }
+
+    // MARK: Long-term review echo
+
+    @Test func longTermEchoLightsOnlyAfterIntervalWithItems() {
+        let opened = at(2026, 6, 20)
+        // 4-day interval: exactly 4 calendar days later it lights; 3 doesn't.
+        #expect(Scheduling.longTermEchoIsActive(
+            lastOpenedAt: opened, intervalDays: 4, hasItems: true,
+            now: at(2026, 6, 23), calendar: cal
+        ) == false)
+        #expect(Scheduling.longTermEchoIsActive(
+            lastOpenedAt: opened, intervalDays: 4, hasItems: true,
+            now: at(2026, 6, 24), calendar: cal
+        ) == true)
+    }
+
+    @Test func longTermEchoNeverLightsForAnEmptyListOrUntouchedScreen() {
+        let longAgo = at(2026, 1, 1)
+        let now = at(2026, 6, 24)
+        // Nothing parked → never nags, however long it's been.
+        #expect(Scheduling.longTermEchoIsActive(
+            lastOpenedAt: longAgo, intervalDays: 4, hasItems: false,
+            now: now, calendar: cal
+        ) == false)
+        // Never engaged (nil) → stays dark so a fresh/seeded list doesn't shout.
+        #expect(Scheduling.longTermEchoIsActive(
+            lastOpenedAt: nil, intervalDays: 4, hasItems: true,
+            now: now, calendar: cal
+        ) == false)
     }
 }

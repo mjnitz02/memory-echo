@@ -19,8 +19,8 @@ struct AskBandRow: View {
     /// value that refreshes on scene-activation; previews/defaults use now.
     var now: Date = .now
 
-    private var stop: ColorStop {
-        ask.colorStop(asOf: now)
+    private var daysRemaining: Int {
+        ask.daysRemaining(asOf: now)
     }
 
     private var nudging: Bool {
@@ -54,7 +54,7 @@ struct AskBandRow: View {
         .padding(.horizontal, 26)
         .frame(maxWidth: .infinity, minHeight: Tuning.bandMinHeight, alignment: .leading)
         .background {
-            AskPalette.gradient(effort: ask.effort, stop: stop)
+            AskPalette.gradient(effort: ask.effort, daysRemaining: daysRemaining)
                 // subtle darkening on the leading edge for depth, like the mock
                 .overlay(
                     LinearGradient(
