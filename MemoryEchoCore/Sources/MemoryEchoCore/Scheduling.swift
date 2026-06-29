@@ -72,6 +72,23 @@ public enum Scheduling {
         return now.timeIntervalSince(dismissed) >= Double(intervalHours) * 3600
     }
 
+    /// Whether the Long Term screen's review echo should be lit. It lights once
+    /// `intervalDays` have elapsed since the screen was last opened (or a memory
+    /// added), and ONLY when there's something on the list — an empty list never
+    /// nags. `lastOpenedAt == nil` (never engaged) stays dark so a brand-new,
+    /// just-seeded list doesn't shout on first launch. Pure date math, shared by
+    /// app + widget.
+    public static func longTermEchoIsActive(
+        lastOpenedAt: Date?,
+        intervalDays: Int,
+        hasItems: Bool,
+        now: Date,
+        calendar: Calendar = .current
+    ) -> Bool {
+        guard hasItems, let opened = lastOpenedAt else { return false }
+        return daysElapsed(from: opened, to: now, calendar: calendar) >= intervalDays
+    }
+
     /// The composite sort value for the Today order: staleness is the spine, but
     /// an ask whose effort matches the current hour's preference gets a small
     /// fractional advantage (`Tuning.timeOfDayBoost`). At < 1 the boost is a pure

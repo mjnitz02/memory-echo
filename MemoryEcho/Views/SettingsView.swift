@@ -32,6 +32,12 @@ struct SettingsView: View {
                 }
 
                 NavigationLink {
+                    LongTermSettingsView()
+                } label: {
+                    row("Long-term review", "waveform.circle", "How often to nudge a review")
+                }
+
+                NavigationLink {
                     WidgetSettingsView()
                 } label: {
                     row("Widgets", "square.grid.2x2", "How much they show, and their background")

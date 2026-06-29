@@ -19,6 +19,9 @@ struct TasksEntry: TimelineEntry {
     /// regardless of how many are actually showing.
     var maxTasks: Int = Tuning.defaultWidgetMaxTasks
     var backgroundOpacity: Double = Tuning.defaultWidgetBackgroundOpacity
+    /// Lights the lime review echo left of the "+": long-term memory has gone
+    /// unopened past its interval (see LongTermConfig).
+    var longTermEchoActive = false
 
     static let placeholder = TasksEntry(date: .now, asks: [
         .init(title: "Call the dentist", glyph: "phone.fill", effort: .quick, stop: .overdue),
@@ -42,11 +45,14 @@ struct TasksProvider: TimelineProvider {
 
     private func loadEntry(now: Date = .now) -> TasksEntry {
         let settings = WidgetSettings.load()
+        let hasLongTerm = WidgetStore.longTermOpenCount() > 0
+        let echo = LongTermConfig.load().echoIsActive(hasItems: hasLongTerm, now: now)
         return TasksEntry(
             date: now,
             asks: WidgetStore.topAsks(now: now, limit: settings.maxTasks),
             maxTasks: settings.maxTasks,
-            backgroundOpacity: settings.backgroundOpacity
+            backgroundOpacity: settings.backgroundOpacity,
+            longTermEchoActive: echo
         )
     }
 }
@@ -61,6 +67,12 @@ struct TasksWidgetEntryView: View {
                     .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(.white)
                 Spacer()
+                if entry.longTermEchoActive {
+                    Image(systemName: "waveform.circle")
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(LongTermPalette.echo)
+                        .padding(.trailing, 4)
+                }
                 Link(destination: URL(string: "memoryecho://add")!) {
                     Image(systemName: "plus.circle.fill")
                         .font(.system(size: 36, weight: .semibold))
