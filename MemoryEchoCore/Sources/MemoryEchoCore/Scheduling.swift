@@ -72,6 +72,20 @@ public enum Scheduling {
         return now.timeIntervalSince(dismissed) >= Double(intervalHours) * 3600
     }
 
+    /// The exact instant a dismissed intention echoes back: dismissal +
+    /// interval. `nil` when it was never dismissed (it's already showing, so
+    /// there's no future transition to schedule). The returned date may be in
+    /// the past — a caller building a widget timeline filters it against `now`
+    /// to keep only still-pending returns. This is what lets the widget render
+    /// the echo at the precise second instead of catching up on a poll tick.
+    public static func intentionReturnDate(
+        lastDismissedAt: Date?,
+        intervalHours: Int
+    ) -> Date? {
+        guard let dismissed = lastDismissedAt else { return nil }
+        return dismissed.addingTimeInterval(Double(intervalHours) * 3600)
+    }
+
     /// Whether the Long Term screen's review echo should be lit. It lights once
     /// `intervalDays` have elapsed since the screen was last opened (or a memory
     /// added), and ONLY when there's something on the list — an empty list never

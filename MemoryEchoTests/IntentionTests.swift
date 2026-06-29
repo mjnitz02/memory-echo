@@ -47,6 +47,28 @@ struct IntentionTests {
         )
     }
 
+    @Test func neverDismissedHasNoReturnDate() {
+        // Already showing → no future transition for the widget timeline to plot.
+        #expect(Scheduling.intentionReturnDate(lastDismissedAt: nil, intervalHours: 24) == nil)
+        #expect(Intention(text: "Breathe").nextReturnDate() == nil)
+    }
+
+    @Test func returnDateIsDismissalPlusInterval() {
+        let dismissed = hoursAgo(2) // dismissed 2h ago, 6h interval → returns in 4h
+        let expected = dismissed.addingTimeInterval(6 * 3600)
+        #expect(Scheduling.intentionReturnDate(lastDismissedAt: dismissed, intervalHours: 6) == expected)
+        #expect(expected > now) // still pending — a widget would plot an entry here
+    }
+
+    @Test func returnDateMatchesWhenItStartsShowing() throws {
+        // The return instant is exactly the boundary intentionIsShowing flips on.
+        let dismissed = now
+        let returnDate = try #require(Scheduling.intentionReturnDate(lastDismissedAt: dismissed, intervalHours: 12))
+        let justBefore = returnDate.addingTimeInterval(-1)
+        #expect(!Scheduling.intentionIsShowing(lastDismissedAt: dismissed, intervalHours: 12, now: justBefore))
+        #expect(Scheduling.intentionIsShowing(lastDismissedAt: dismissed, intervalHours: 12, now: returnDate))
+    }
+
     @Test func modelHelperMatchesTheEngine() {
         let intention = Intention(text: "Breathe", intervalHours: 12)
         #expect(intention.isShowing(asOf: now)) // never dismissed

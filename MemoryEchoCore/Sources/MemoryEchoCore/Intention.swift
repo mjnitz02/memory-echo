@@ -51,6 +51,17 @@ public final class Intention {
         )
     }
 
+    /// When a currently-hidden intention will echo back (dismissal + interval),
+    /// or `nil` if it's never been dismissed. A widget timeline uses this to
+    /// place an entry at the exact return instant (see
+    /// Scheduling.intentionReturnDate).
+    public func nextReturnDate() -> Date? {
+        Scheduling.intentionReturnDate(
+            lastDismissedAt: lastDismissedAt,
+            intervalHours: intervalHours
+        )
+    }
+
     public func dismiss() {
         lastDismissedAt = .now
     }

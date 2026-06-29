@@ -35,12 +35,22 @@ struct OverviewProvider: TimelineProvider {
     }
 
     func getTimeline(in _: Context, completion: @escaping (Timeline<OverviewEntry>) -> Void) {
-        let nextHour = Calendar.current.nextDate(
-            after: .now,
-            matching: DateComponents(minute: 0),
-            matchingPolicy: .nextTime
-        ) ?? Date.now.addingTimeInterval(3600)
-        completion(Timeline(entries: [loadEntry()], policy: .after(nextHour)))
+        // Overview shows both content types, so it transitions at the union of
+        // each pending intention echo-back and each midnight (ask staleness). All
+        // are known instants, so we plot a precomputed entry at each — no polling,
+        // no lag — and `.atEnd` requests a fresh timeline once they're spent.
+        let settings = WidgetSettings.load()
+        let entries = WidgetStore
+            .overviewSlices(now: .now, taskLimit: settings.maxTasks, intentionLimit: settings.maxIntentions)
+            .map {
+                OverviewEntry(
+                    date: $0.date,
+                    asks: $0.asks,
+                    intentions: $0.intentions,
+                    backgroundOpacity: settings.backgroundOpacity
+                )
+            }
+        completion(Timeline(entries: entries, policy: .atEnd))
     }
 
     private func loadEntry(now: Date = .now) -> OverviewEntry {

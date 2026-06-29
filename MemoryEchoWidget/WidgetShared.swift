@@ -75,16 +75,7 @@ struct IntentionSnapshot: Identifiable {
 enum WidgetStore {
     /// Top asks by the same staleness spine the app's Today list uses.
     static func topAsks(now: Date, limit: Int) -> [AskSnapshot] {
-        let context = ModelContext(MemoryEchoStore.container())
-        let descriptor = FetchDescriptor<Ask>(predicate: #Predicate { $0.completedAt == nil })
-        let asks = (try? context.fetch(descriptor)) ?? []
-        return asks
-            .sorted { a, b in
-                let ra = a.daysRemaining(asOf: now), rb = b.daysRemaining(asOf: now)
-                return ra != rb ? ra < rb : a.createdAt < b.createdAt
-            }
-            .prefix(limit)
-            .map { AskSnapshot(ask: $0, now: now) }
+        rankedAsks(openAsks(), now: now, limit: limit)
     }
 
     /// How many long-term memories are still parked (open). Only the count
@@ -97,11 +88,108 @@ enum WidgetStore {
 
     /// Intentions currently echoing back (not dismissed within their interval).
     static func showingIntentions(now: Date, limit: Int) -> [IntentionSnapshot] {
+        showingIntentions(nonEmptyIntentions(), asOf: now, limit: limit)
+    }
+
+    /// Timeline slices for the intentions strip: the showing set as of `now`,
+    /// plus one slice at each future moment a hidden intention echoes back.
+    /// A hidden intention has exactly one return transition (then it stays put
+    /// until tapped, which already pushes a reload), so these slices capture
+    /// every change with no polling — the widget flips each echo on at the
+    /// precise second instead of catching up on the next hourly tick. Always
+    /// returns at least the `now` slice.
+    static func intentionSlices(now: Date, limit: Int) -> [IntentionSlice] {
+        let intentions = nonEmptyIntentions()
+        return transitionInstants(intentions: intentions, now: now, includeMidnights: false)
+            .map { moment in
+                IntentionSlice(date: moment, intentions: showingIntentions(intentions, asOf: moment, limit: limit))
+            }
+    }
+
+    /// One Intentions-strip entry's content as it stands at a given transition
+    /// instant (the showing set at that moment).
+    struct IntentionSlice {
+        let date: Date
+        let intentions: [IntentionSnapshot]
+    }
+
+    /// One Overview entry's content as it stands at a given transition instant.
+    struct OverviewSlice {
+        let date: Date
+        let asks: [AskSnapshot]
+        let intentions: [IntentionSnapshot]
+    }
+
+    /// Timeline slices for the Overview widget, which shows both content types,
+    /// so it transitions at the union of (a) each pending intention echo-back
+    /// and (b) each midnight (when ask staleness colors/order advance). Each
+    /// slice carries the asks and intentions as they stand at that instant.
+    static func overviewSlices(now: Date, taskLimit: Int, intentionLimit: Int) -> [OverviewSlice] {
+        let asks = openAsks()
+        let intentions = nonEmptyIntentions()
+        return transitionInstants(intentions: intentions, now: now, includeMidnights: true)
+            .map { moment in
+                OverviewSlice(
+                    date: moment,
+                    asks: rankedAsks(asks, now: moment, limit: taskLimit),
+                    intentions: showingIntentions(intentions, asOf: moment, limit: intentionLimit)
+                )
+            }
+    }
+
+    // MARK: Shared internals
+
+    /// The sorted, de-duped instants at which a widget's content changes inside
+    /// the look-ahead window: always `now`, each still-pending intention
+    /// echo-back, and (for content that ages by the day) each midnight.
+    private static func transitionInstants(
+        intentions: [Intention],
+        now: Date,
+        includeMidnights: Bool
+    ) -> [Date] {
+        let windowEnd = now.addingTimeInterval(WidgetRefresh.lookAheadHours * 3600)
+        var moments: Set<Date> = [now]
+        for intention in intentions {
+            if let returnDate = intention.nextReturnDate(), returnDate > now, returnDate <= windowEnd {
+                moments.insert(returnDate)
+            }
+        }
+        if includeMidnights {
+            var midnight = WidgetRefresh.nextMidnight(after: now)
+            while midnight <= windowEnd {
+                moments.insert(midnight)
+                midnight = WidgetRefresh.nextMidnight(after: midnight)
+            }
+        }
+        return moments.sorted()
+    }
+
+    private static func openAsks() -> [Ask] {
+        let context = ModelContext(MemoryEchoStore.container())
+        let descriptor = FetchDescriptor<Ask>(predicate: #Predicate { $0.completedAt == nil })
+        return (try? context.fetch(descriptor)) ?? []
+    }
+
+    private static func nonEmptyIntentions() -> [Intention] {
         let context = ModelContext(MemoryEchoStore.container())
         let descriptor = FetchDescriptor<Intention>(sortBy: [SortDescriptor(\.sortIndex)])
         let intentions = (try? context.fetch(descriptor)) ?? []
-        return intentions
-            .filter { $0.isShowing(asOf: now) && !$0.text.trimmingCharacters(in: .whitespaces).isEmpty }
+        return intentions.filter { !$0.text.trimmingCharacters(in: .whitespaces).isEmpty }
+    }
+
+    private static func rankedAsks(_ asks: [Ask], now: Date, limit: Int) -> [AskSnapshot] {
+        asks
+            .sorted { a, b in
+                let ra = a.daysRemaining(asOf: now), rb = b.daysRemaining(asOf: now)
+                return ra != rb ? ra < rb : a.createdAt < b.createdAt
+            }
+            .prefix(limit)
+            .map { AskSnapshot(ask: $0, now: now) }
+    }
+
+    private static func showingIntentions(_ intentions: [Intention], asOf: Date, limit: Int) -> [IntentionSnapshot] {
+        intentions
+            .filter { $0.isShowing(asOf: asOf) }
             .prefix(limit)
             .map { IntentionSnapshot(intention: $0) }
     }
@@ -110,6 +198,12 @@ enum WidgetStore {
 // MARK: - Refresh cadence
 
 enum WidgetRefresh {
+    /// How far ahead a multi-entry timeline plots transitions. 48h covers the
+    /// longest intention interval and at least one midnight, so every scheduled
+    /// change lands as a precomputed entry; `.atEnd` then asks for a fresh
+    /// timeline once they're spent.
+    static let lookAheadHours: Double = 48
+
     /// Refresh just after midnight so staleness colors/ordering advance a day.
     static func nextMidnight(after date: Date = .now) -> Date {
         Calendar.current.nextDate(
