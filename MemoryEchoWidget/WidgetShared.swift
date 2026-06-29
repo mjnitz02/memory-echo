@@ -25,23 +25,31 @@ struct AskSnapshot: Identifiable {
     let title: String
     let glyph: String
     let effort: Effort
-    let stop: ColorStop
+    /// Buffer days left (negative = overdue). Drives the band color, including
+    /// the overdue alarm ramp, so the widget matches the app exactly.
+    let daysRemaining: Int
 
     init(ask: Ask, now: Date) {
         id = "\(ObjectIdentifier(ask))"
         title = ask.title
         glyph = ask.glyph
         effort = ask.effort
-        stop = ask.colorStop(asOf: now)
+        daysRemaining = ask.daysRemaining(asOf: now)
     }
 
-    /// Placeholder rows for previews / redacted state.
+    /// Placeholder rows for previews / redacted state, described by the stop
+    /// they should land on (mapped to a representative days-remaining).
     init(title: String, glyph: String, effort: Effort, stop: ColorStop) {
         id = title
         self.title = title
         self.glyph = glyph
         self.effort = effort
-        self.stop = stop
+        daysRemaining = switch stop {
+        case .later: 3
+        case .tomorrow: 1
+        case .today: 0
+        case .overdue: -1
+        }
     }
 }
 
@@ -170,7 +178,7 @@ struct AskRow: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
         .frame(maxWidth: .infinity, maxHeight: fillHeight ? .infinity : nil, alignment: .leading)
-        .background(AskPalette.gradient(effort: ask.effort, stop: ask.stop))
+        .background(AskPalette.gradient(effort: ask.effort, daysRemaining: ask.daysRemaining))
         .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
     }
 }

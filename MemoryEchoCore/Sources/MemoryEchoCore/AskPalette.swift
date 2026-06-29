@@ -3,11 +3,15 @@
 //  MemoryEchoCore
 //
 //  Color is a 2-axis readout, computed (never stored):
-//    • effort  -> temperature family  (Quick = cool, Long = warm)
-//    • staleness -> depth within that family (later = calm, overdue = hot)
+//    • effort  -> color family   (Quick = "Fading Sky" blues, Long = "Lemon
+//                                 Twist" gold→green)
+//    • staleness -> depth within that family (later = pale/calm, today = deep)
 //
-//  Hexes are the first-draft palette from the Claude-Design mock; we'll tune
-//  them in real use. Glyph (type) is handled separately in AskGlyph.
+//  Both families are deliberately cool/calm. The ONE place loud color returns is
+//  overdue: once an ask slips past its deadline it abandons the effort family
+//  entirely and enters a uniform "you're ignoring me" alarm that escalates by
+//  the day (magenta → grating pink-red). Effort stops mattering at that point —
+//  what matters is that it isn't being dealt with. Glyph (type) lives in AskGlyph.
 //
 
 import SwiftUI
@@ -27,24 +31,51 @@ public enum ColorStop: Sendable {
 }
 
 public enum AskPalette {
-    /// (start, end) hex pair for every effort × stop combination.
+    /// Overdue alarm ramp — uniform across effort, escalating by how many days
+    /// the ask has been ignored: harsh magenta on the first overdue day,
+    /// reaching a deliberately grating pink-red by the third.
+    private static let overdueStart = "#96006B" // day −1
+    private static let overdueEnd = "#FF025E" // day −3 and beyond
+
+    /// (start, end) hex pair for every effort × non-overdue stop.
     private static func stops(_ effort: Effort, _ stop: ColorStop) -> (String, String) {
         switch (effort, stop) {
-        // Quick — cool family: green → teal → blue → deep blue
-        case (.quick, .later): ("#0E9C84", "#1CC0A0")
-        case (.quick, .tomorrow): ("#048BB0", "#18B6D8")
-        case (.quick, .today): ("#1657C7", "#2A78E6")
-        case (.quick, .overdue): ("#0E3FA8", "#1E63D6")
-        // Long — warm family: gold → amber → orange → deep red
-        case (.long, .later): ("#D99A22", "#F2C04A")
-        case (.long, .tomorrow): ("#EC8A07", "#FBA628")
-        case (.long, .today): ("#DB4B0B", "#FB7414")
-        case (.long, .overdue): ("#B23105", "#E85D10")
+        // Quick — "Fading Sky": pale sky in the future deepening to royal blue.
+        case (.quick, .later): ("#B4F0FC", "#9CECFB")
+        case (.quick, .tomorrow): ("#6FCBF7", "#4FB0EE")
+        case (.quick, .today): ("#1E6FE0", "#0052D4")
+        // Long — "Lemon Twist": gold in the distance ripening to green by today.
+        case (.long, .later): ("#C2BA5A", "#B5AC49")
+        case (.long, .tomorrow): ("#9DB152", "#79A852")
+        case (.long, .today): ("#46AD63", "#3CA55C")
+        // Overdue is never colored by effort — routed through `overdueColor`
+        // before we ever reach here; this keeps the switch exhaustive.
+        case (_, .overdue): (overdueStart, overdueStart)
         }
     }
 
-    /// The band gradient for an ask. Angled roughly like the mock's 105°.
+    /// The single alarm color for a given (negative) days-remaining: `#96006B`
+    /// at −1, linearly to `#FF025E` at −3, then held.
+    public static func overdueColor(daysRemaining: Int) -> Color {
+        let fraction = min(max(Double(-daysRemaining - 1) / 2.0, 0), 1)
+        return lerpHex(overdueStart, overdueEnd, fraction)
+    }
+
+    /// Live band gradient for an ask, given its buffer days remaining. Negative
+    /// days are overdue and ramp through the uniform alarm scale, ignoring
+    /// effort; otherwise this defers to the effort × staleness family.
+    public static func gradient(effort: Effort, daysRemaining: Int) -> LinearGradient {
+        guard daysRemaining < 0 else {
+            return gradient(effort: effort, stop: Scheduling.colorStop(daysRemaining: daysRemaining))
+        }
+        return flat(overdueColor(daysRemaining: daysRemaining))
+    }
+
+    /// The band gradient for a known stop. Overdue collapses to the first-day
+    /// alarm color (callers that know the exact day should use the
+    /// `daysRemaining:` overload to get the full ramp). Angled like the mock.
     public static func gradient(effort: Effort, stop: ColorStop) -> LinearGradient {
+        if case .overdue = stop { return flat(overdueColor(daysRemaining: -1)) }
         let (a, b) = stops(effort, stop)
         return LinearGradient(
             colors: [Color(hex: a), Color(hex: b)],
@@ -55,7 +86,49 @@ public enum AskPalette {
 
     /// Solid representative color (the lighter end) — handy for chips/accents.
     public static func accent(effort: Effort, stop: ColorStop) -> Color {
-        Color(hex: stops(effort, stop).1)
+        if case .overdue = stop { return overdueColor(daysRemaining: -1) }
+        return Color(hex: stops(effort, stop).1)
+    }
+
+    /// A uniform fill — same color both ends. The band row's own leading-edge
+    /// darkening still lends it depth, so overdue reads as one alarm color.
+    private static func flat(_ color: Color) -> LinearGradient {
+        LinearGradient(
+            colors: [color, color],
+            startPoint: .init(x: 0, y: 0.1),
+            endPoint: .init(x: 1, y: 0.9)
+        )
+    }
+
+    /// Linear RGB interpolation between two `#RRGGBB` hexes.
+    private static func lerpHex(_ from: String, _ to: String, _ fraction: Double) -> Color {
+        let start = rgb(from)
+        let end = rgb(to)
+        return Color(
+            .sRGB,
+            red: start.red + (end.red - start.red) * fraction,
+            green: start.green + (end.green - start.green) * fraction,
+            blue: start.blue + (end.blue - start.blue) * fraction,
+            opacity: 1
+        )
+    }
+
+    /// 0...1 sRGB components parsed from a hex.
+    private struct RGB {
+        let red, green, blue: Double
+    }
+
+    /// Parse a `#RRGGBB` hex into sRGB components (black on bad input).
+    private static func rgb(_ hex: String) -> RGB {
+        let cleaned = hex.trimmingCharacters(in: CharacterSet(charactersIn: "#"))
+        guard cleaned.count == 6, let value = UInt64(cleaned, radix: 16) else {
+            return RGB(red: 0, green: 0, blue: 0)
+        }
+        return RGB(
+            red: Double((value >> 16) & 0xFF) / 255,
+            green: Double((value >> 8) & 0xFF) / 255,
+            blue: Double(value & 0xFF) / 255
+        )
     }
 }
 
