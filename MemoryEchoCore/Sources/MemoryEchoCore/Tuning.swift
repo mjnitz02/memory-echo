@@ -19,8 +19,10 @@ public enum Tuning {
     public static let bufferLaterThisWeek = 3
 
     /// How overdue (in negative days remaining) an ask must get before it
-    /// earns the accountability nudge. Phase 3.
-    public static let nudgeThresholdDays = -2
+    /// earns the accountability nudge. Fires on the first overdue day — the
+    /// moment the band turns to its warning color — so the do/reset/trash
+    /// option appears exactly when the color starts escalating. Phase 3.
+    public static let nudgeThresholdDays = -1
 
     // MARK: Time-of-day effort boost
 

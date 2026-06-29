@@ -55,10 +55,11 @@ struct SchedulingTests {
     }
 
     @Test func nudgeOnlyWhenOpenAndStuckPastThreshold() {
-        // Threshold is Tuning.nudgeThresholdDays (−2): exactly −2 nudges, −1 doesn't.
+        // Threshold is Tuning.nudgeThresholdDays (−1): the first overdue day
+        // nudges; today (0) does not.
+        #expect(Scheduling.needsNudge(daysRemaining: -1, isOpen: true) == true)
         #expect(Scheduling.needsNudge(daysRemaining: -2, isOpen: true) == true)
         #expect(Scheduling.needsNudge(daysRemaining: -3, isOpen: true) == true)
-        #expect(Scheduling.needsNudge(daysRemaining: -1, isOpen: true) == false)
         #expect(Scheduling.needsNudge(daysRemaining: 0, isOpen: true) == false)
         // A completed ask never nudges, however overdue.
         #expect(Scheduling.needsNudge(daysRemaining: -5, isOpen: false) == false)
