@@ -1,5 +1,5 @@
 //
-//  AskGlyph.swift
+//  MemoryGlyph.swift
 //  MemoryEchoCore
 //
 //  Pure function: title -> a white SF Symbol that hints at the *type* of
@@ -11,8 +11,8 @@
 //  on-device model (GlyphResolver) chooses from the SAME case set, so the LLM
 //  can never name a symbol that doesn't exist — it picks a slot, we map the
 //  slot to its symbol. ~100 buckets give the model real range without needing
-//  a third-party icon library. Glyph is derived, never stored (Ask caches the
-//  model's pick separately), so re-tuning needs no migration.
+//  a third-party icon library. Glyph is derived, never stored (ShortTermMemory
+//  caches the model's pick separately), so re-tuning needs no migration.
 //
 //  Every `symbol` is validated against the live SF Symbol catalog by a unit
 //  test, so a typo fails CI rather than rendering blank on device.
@@ -282,7 +282,7 @@ public enum GlyphCategory: String, CaseIterable, Sendable {
     }
 }
 
-public enum AskGlyph {
+public enum MemoryGlyph {
     /// Neutral fallback — a 4-point spark — when nothing matches.
     public static let fallback = "sparkle"
 

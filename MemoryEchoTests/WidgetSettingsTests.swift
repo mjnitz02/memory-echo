@@ -14,19 +14,19 @@ struct WidgetSettingsTests {
     @Test func defaultsMatchTuning() {
         let settings = WidgetSettings.default
         #expect(settings.maxTasks == Tuning.defaultWidgetMaxTasks)
-        #expect(settings.maxIntentions == Tuning.defaultWidgetMaxIntentions)
+        #expect(settings.maxEchoes == Tuning.defaultWidgetMaxEchoes)
         #expect(settings.backgroundOpacity == Tuning.defaultWidgetBackgroundOpacity)
     }
 
     @Test func valuesClampIntoRange() {
-        let tooLow = WidgetSettings(maxTasks: 0, maxIntentions: 0, backgroundOpacity: -1)
+        let tooLow = WidgetSettings(maxTasks: 0, maxEchoes: 0, backgroundOpacity: -1)
         #expect(tooLow.maxTasks == Tuning.widgetTaskCountRange.lowerBound)
-        #expect(tooLow.maxIntentions == Tuning.widgetIntentionCountRange.lowerBound)
+        #expect(tooLow.maxEchoes == Tuning.widgetEchoCountRange.lowerBound)
         #expect(tooLow.backgroundOpacity == 0)
 
-        let tooHigh = WidgetSettings(maxTasks: 99, maxIntentions: 99, backgroundOpacity: 5)
+        let tooHigh = WidgetSettings(maxTasks: 99, maxEchoes: 99, backgroundOpacity: 5)
         #expect(tooHigh.maxTasks == Tuning.widgetTaskCountRange.upperBound)
-        #expect(tooHigh.maxIntentions == Tuning.widgetIntentionCountRange.upperBound)
+        #expect(tooHigh.maxEchoes == Tuning.widgetEchoCountRange.upperBound)
         #expect(tooHigh.backgroundOpacity == 1)
     }
 
@@ -34,7 +34,7 @@ struct WidgetSettingsTests {
         let suite = try #require(UserDefaults(suiteName: "WidgetSettingsTests.\(UUID().uuidString)"))
         defer { suite.removePersistentDomain(forName: suite.dictionaryRepresentation().description) }
 
-        let saved = WidgetSettings(maxTasks: 6, maxIntentions: 2, backgroundOpacity: 0.4)
+        let saved = WidgetSettings(maxTasks: 6, maxEchoes: 2, backgroundOpacity: 0.4)
         saved.save(to: suite)
 
         let loaded = WidgetSettings.load(from: suite)

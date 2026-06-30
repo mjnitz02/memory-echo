@@ -3,8 +3,8 @@
 //  MemoryEchoWidget
 //
 //  Widget ③ — Extra Large (6×4). The closest thing to the app's main screen:
-//  tasks stacked over intentions, with less interactivity. Per the agreed rule,
-//  tapping a task (or any empty space) opens the app; only the intention chips
+//  memories stacked over echoes, with less interactivity. Per the agreed rule,
+//  tapping a memory (or any empty space) opens the app; only the echo chips
 //  are interactive, dismissing in place. The "+" opens the capture sheet.
 //
 
@@ -14,14 +14,14 @@ import WidgetKit
 
 struct OverviewEntry: TimelineEntry {
     let date: Date
-    let asks: [AskSnapshot]
-    let intentions: [IntentionSnapshot]
+    let memories: [ShortTermMemorySnapshot]
+    let echoes: [EchoSnapshot]
     var backgroundOpacity: Double = Tuning.defaultWidgetBackgroundOpacity
 
     static let placeholder = OverviewEntry(
         date: .now,
-        asks: TasksEntry.placeholder.asks,
-        intentions: IntentionsEntry.placeholder.intentions
+        memories: MemoriesEntry.placeholder.memories,
+        echoes: EchoesEntry.placeholder.echoes
     )
 }
 
@@ -36,17 +36,17 @@ struct OverviewProvider: TimelineProvider {
 
     func getTimeline(in _: Context, completion: @escaping (Timeline<OverviewEntry>) -> Void) {
         // Overview shows both content types, so it transitions at the union of
-        // each pending intention echo-back and each midnight (ask staleness). All
+        // each pending echo return and each midnight (memory staleness). All
         // are known instants, so we plot a precomputed entry at each — no polling,
         // no lag — and `.atEnd` requests a fresh timeline once they're spent.
         let settings = WidgetSettings.load()
         let entries = WidgetStore
-            .overviewSlices(now: .now, taskLimit: settings.maxTasks, intentionLimit: settings.maxIntentions)
+            .overviewSlices(now: .now, memoryLimit: settings.maxTasks, echoLimit: settings.maxEchoes)
             .map {
                 OverviewEntry(
                     date: $0.date,
-                    asks: $0.asks,
-                    intentions: $0.intentions,
+                    memories: $0.memories,
+                    echoes: $0.echoes,
                     backgroundOpacity: settings.backgroundOpacity
                 )
             }
@@ -57,8 +57,8 @@ struct OverviewProvider: TimelineProvider {
         let settings = WidgetSettings.load()
         return OverviewEntry(
             date: now,
-            asks: WidgetStore.topAsks(now: now, limit: settings.maxTasks),
-            intentions: WidgetStore.showingIntentions(now: now, limit: settings.maxIntentions),
+            memories: WidgetStore.topMemories(now: now, limit: settings.maxTasks),
+            echoes: WidgetStore.showingEchoes(now: now, limit: settings.maxEchoes),
             backgroundOpacity: settings.backgroundOpacity
         )
     }
@@ -81,21 +81,21 @@ struct OverviewWidgetEntryView: View {
                 }
             }
 
-            if entry.asks.isEmpty {
+            if entry.memories.isEmpty {
                 WidgetEmptyState(text: "All clear ✨")
             } else {
                 VStack(alignment: .leading, spacing: 6) {
-                    ForEach(entry.asks) { AskRow(ask: $0) }
+                    ForEach(entry.memories) { ShortTermMemoryRow(memory: $0) }
                 }
             }
 
-            if !entry.intentions.isEmpty {
-                Text("Intentions")
+            if !entry.echoes.isEmpty {
+                Text("Echoes")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.4))
                     .padding(.top, 2)
                 VStack(alignment: .leading, spacing: 6) {
-                    ForEach(entry.intentions) { IntentionChip(intention: $0) }
+                    ForEach(entry.echoes) { EchoChip(echo: $0) }
                 }
             }
 
@@ -115,7 +115,7 @@ struct OverviewWidget: Widget {
             OverviewWidgetEntryView(entry: entry)
         }
         .configurationDisplayName("Overview")
-        .description("Tasks and intentions together, like the app at a glance.")
+        .description("Memories and echoes together, like the app at a glance.")
         .supportedFamilies([.systemExtraLarge])
     }
 }

@@ -21,9 +21,9 @@ struct MemoryEchoApp: App {
                 .task {
                     let context = sharedModelContainer.mainContext
                     SampleData.seedIfNeeded(context)
-                    // Heal the one-time migration artifact where adding Ask.id
-                    // stamped one shared UUID onto every pre-existing ask.
-                    try? StoreMaintenance.deduplicateAskIDs(in: context)
+                    // Heal the one-time migration artifact where adding
+                    // ShortTermMemory.id stamped one shared UUID onto every row.
+                    try? StoreMaintenance.deduplicateShortTermMemoryIDs(in: context)
                     // Drop done items that are no longer undoable, so finished
                     // asks / long-term memories don't accumulate in the store.
                     try? StoreMaintenance.purgeCompleted(in: context)

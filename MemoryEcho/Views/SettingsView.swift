@@ -37,9 +37,9 @@ struct SettingsView: View {
                 }
 
                 NavigationLink {
-                    IntentionsView()
+                    EchoesView()
                 } label: {
-                    row("Intentions", "sparkles", "Little reminders that echo back")
+                    row("Echoes", "sparkles", "Little reminders that echo back")
                 }
 
                 NavigationLink {
@@ -102,7 +102,7 @@ struct SettingsView: View {
             Button("Replace all", role: .destructive) { performImport() }
             Button("Cancel", role: .cancel) { pendingImportURL = nil }
         } message: {
-            Text("Every current memory and intention is deleted and replaced with the file's contents. "
+            Text("Every current memory and echo is deleted and replaced with the file's contents. "
                 + "This can't be undone.")
         }
         .alert("Backup", isPresented: resultAlertBinding) {

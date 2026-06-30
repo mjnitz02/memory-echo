@@ -18,7 +18,7 @@ public enum Tuning {
     public static let bufferTomorrow = 1
     public static let bufferLaterThisWeek = 3
 
-    /// How overdue (in negative days remaining) an ask must get before it
+    /// How overdue (in negative days remaining) a memory must get before it
     /// earns the accountability nudge. Fires on the first overdue day — the
     /// moment the band turns to its warning color — so the do/reset/trash
     /// option appears exactly when the color starts escalating. Phase 3.
@@ -26,11 +26,11 @@ public enum Tuning {
 
     // MARK: Time-of-day effort boost
 
-    /// How strongly an ask whose effort matches the current hour's preference
+    /// How strongly a memory whose effort matches the current hour's preference
     /// rises in the Today order. Subtracted from `daysRemaining` as a fractional
-    /// advantage, so at < 1 it's a pure *same-day tie-break*: a matching ask
+    /// advantage, so at < 1 it's a pure *same-day tie-break*: a matching memory
     /// rises among equally-stale ones but never leapfrogs a genuinely-staler
-    /// ask. Staleness stays the spine; a truly-overdue mismatch still wins.
+    /// memory. Staleness stays the spine; a truly-overdue mismatch still wins.
     public static let timeOfDayBoost = 0.5
 
     /// The effort preferred at each hour when the user hasn't edited the
@@ -38,12 +38,12 @@ public enum Tuning {
     /// be changed. (See `EffortProfile`.)
     public static let defaultPreferredEffort: Effort = .quick
 
-    // MARK: Intentions
+    // MARK: Echoes
 
-    /// The interval choices (hours) an intention can echo back on.
-    public static let intentionIntervalChoices = [3, 6, 12, 24, 48]
-    /// Default interval for a freshly-added intention.
-    public static let defaultIntentionIntervalHours = 24
+    /// The interval choices (hours) an echo can resurface on.
+    public static let echoIntervalChoices = [3, 6, 12, 24, 48]
+    /// Default interval for a freshly-added echo.
+    public static let defaultEchoIntervalHours = 24
 
     // MARK: Long-term memory (review echo)
 
@@ -55,10 +55,10 @@ public enum Tuning {
 
     // MARK: Today list layout
 
-    /// Minimum height of a full-bleed task band.
+    /// Minimum height of a full-bleed memory band.
     public static let bandMinHeight: CGFloat = 84
 
-    /// How long a completed ask stays recoverable via the Undo toast before it
+    /// How long a completed memory stays recoverable via the Undo toast before it
     /// quietly settles as done.
     public static let undoWindowSeconds: Double = 5
 
@@ -69,13 +69,14 @@ public enum Tuning {
 
     // MARK: Widget (user-tunable via WidgetSettings)
 
-    /// How many tasks any task-showing widget lists — user-set within this range.
+    /// How many memories any memory-showing widget lists — user-set within this
+    /// range.
     public static let widgetTaskCountRange = 3 ... 10
     public static let defaultWidgetMaxTasks = 8
 
-    /// How many intentions any intention-showing widget lists.
-    public static let widgetIntentionCountRange = 1 ... 5
-    public static let defaultWidgetMaxIntentions = 4
+    /// How many echoes any echo-showing widget lists.
+    public static let widgetEchoCountRange = 1 ... 5
+    public static let defaultWidgetMaxEchoes = 4
 
     /// Black widget background opacity, so the wallpaper can show through. 1 =
     /// solid black (the default look).
@@ -83,7 +84,7 @@ public enum Tuning {
 
     // MARK: Developer convenience
 
-    /// Seed a handful of sample asks + intentions on first launch so the list
+    /// Seed a handful of sample memories + echoes on first launch so the list
     /// isn't empty while we build. Flip off (or delete the data) any time.
     public static let seedSampleDataWhenEmpty = true
 }

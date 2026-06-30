@@ -1,13 +1,14 @@
 //
-//  AddAskSheet.swift
+//  AddShortTermMemorySheet.swift
 //  MemoryEcho
 //
 //  The capture sheet (Phase 2). A big autofocused field with a LIVE band
 //  preview that updates its glyph + color as you type and pick effort/horizon,
 //  then two effort chips, three horizon chips, Add.
 //
-//  The preview is the real `AskBandRow` driven by a throwaway (non-inserted)
-//  `Ask`, so what you see here is exactly what lands in the list.
+//  The preview is the real `ShortTermMemoryBandRow` driven by a throwaway
+//  (non-inserted) `ShortTermMemory`, so what you see here is exactly what lands
+//  in the list.
 //
 
 import MemoryEchoCore
@@ -15,7 +16,7 @@ import SwiftData
 import SwiftUI
 import WidgetKit
 
-struct AddAskSheet: View {
+struct AddShortTermMemorySheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
 
@@ -33,12 +34,12 @@ struct AddAskSheet: View {
         !trimmedTitle.isEmpty
     }
 
-    /// A transient, un-inserted Ask used purely to render the live preview with
-    /// the same code path the Today list uses. Falls back to placeholder copy
-    /// (neutral glyph) before anything is typed.
-    private var previewAsk: Ask {
-        Ask(
-            title: trimmedTitle.isEmpty ? "Your ask…" : trimmedTitle,
+    /// A transient, un-inserted ShortTermMemory used purely to render the live
+    /// preview with the same code path the Today list uses. Falls back to
+    /// placeholder copy (neutral glyph) before anything is typed.
+    private var previewMemory: ShortTermMemory {
+        ShortTermMemory(
+            title: trimmedTitle.isEmpty ? "Your memory…" : trimmedTitle,
             effort: effort,
             horizon: horizon
         )
@@ -75,7 +76,7 @@ struct AddAskSheet: View {
             }
             .padding(24)
             .background(Color.black.ignoresSafeArea())
-            .navigationTitle("New Ask")
+            .navigationTitle("New Memory")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -100,7 +101,7 @@ struct AddAskSheet: View {
                 .foregroundStyle(.white.opacity(0.4))
                 .tracking(1.5)
 
-            AskBandRow(ask: previewAsk)
+            ShortTermMemoryBandRow(memory: previewMemory)
                 .opacity(trimmedTitle.isEmpty ? 0.5 : 1)
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                 .animation(.easeInOut(duration: 0.25), value: effort)
@@ -112,8 +113,8 @@ struct AddAskSheet: View {
 
     private func add() {
         guard canAdd else { return }
-        context.insert(Ask(title: trimmedTitle, effort: effort, horizon: horizon))
-        // Save before reloading so the widget's fresh read sees the new ask;
+        context.insert(ShortTermMemory(title: trimmedTitle, effort: effort, horizon: horizon))
+        // Save before reloading so the widget's fresh read sees the new memory;
         // SwiftData's autosave is too lazy to beat the timeline reload otherwise.
         try? context.save()
         WidgetCenter.shared.reloadAllTimelines()

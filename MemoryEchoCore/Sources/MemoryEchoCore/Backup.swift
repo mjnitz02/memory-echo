@@ -12,8 +12,12 @@
 //  human-readable, and hand-editable — letting a type change become
 //  "export → edit JSON → reinstall → import" rather than a real migration.
 //
-//  Import is REPLACE-ALL by design: it wipes every Ask / Intention /
+//  Import is REPLACE-ALL by design: it wipes every ShortTermMemory / Echo /
 //  LongTermMemory and inserts the file's contents. No merge, no rectification.
+//
+//  v1 → v2 key renames: "asks" → "shortTermMemories", "intentions" → "echoes".
+//  The custom init(from:) on MemoryEchoBackup accepts both formats so a v1
+//  file (or a hand-edited copy) can still be imported after the rename.
 //
 
 import Foundation
@@ -21,10 +25,10 @@ import SwiftData
 
 // MARK: - Snapshots (the on-disk shape)
 
-/// Flat, Codable mirror of `Ask`'s raw stored state. Raw (`horizonRaw` /
-/// `effortRaw`) rather than typed so an unknown future enum case round-trips
-/// untouched instead of being silently coerced.
-public struct AskSnapshot: Codable, Sendable {
+/// Flat, Codable mirror of `ShortTermMemory`'s raw stored state. Raw
+/// (`horizonRaw` / `effortRaw`) rather than typed so an unknown future enum
+/// case round-trips untouched instead of being silently coerced.
+public struct ShortTermMemorySnapshot: Codable, Sendable {
     public var id: UUID
     public var title: String
     public var createdAt: Date
@@ -34,52 +38,52 @@ public struct AskSnapshot: Codable, Sendable {
     public var completedAt: Date?
     public var cachedGlyph: String?
 
-    public init(from ask: Ask) {
-        id = ask.id
-        title = ask.title
-        createdAt = ask.createdAt
-        horizonRaw = ask.horizonRaw
-        horizonSetAt = ask.horizonSetAt
-        effortRaw = ask.effortRaw
-        completedAt = ask.completedAt
-        cachedGlyph = ask.cachedGlyph
+    public init(from memory: ShortTermMemory) {
+        id = memory.id
+        title = memory.title
+        createdAt = memory.createdAt
+        horizonRaw = memory.horizonRaw
+        horizonSetAt = memory.horizonSetAt
+        effortRaw = memory.effortRaw
+        completedAt = memory.completedAt
+        cachedGlyph = memory.cachedGlyph
     }
 
     /// Rebuild a fresh model from this snapshot (used on import).
-    public func makeModel() -> Ask {
-        let ask = Ask(title: title)
-        ask.id = id
-        ask.createdAt = createdAt
-        ask.horizonRaw = horizonRaw
-        ask.horizonSetAt = horizonSetAt
-        ask.effortRaw = effortRaw
-        ask.completedAt = completedAt
-        ask.cachedGlyph = cachedGlyph
-        return ask
+    public func makeModel() -> ShortTermMemory {
+        let memory = ShortTermMemory(title: title)
+        memory.id = id
+        memory.createdAt = createdAt
+        memory.horizonRaw = horizonRaw
+        memory.horizonSetAt = horizonSetAt
+        memory.effortRaw = effortRaw
+        memory.completedAt = completedAt
+        memory.cachedGlyph = cachedGlyph
+        return memory
     }
 }
 
-/// Flat, Codable mirror of `Intention`'s stored state.
-public struct IntentionSnapshot: Codable, Sendable {
+/// Flat, Codable mirror of `Echo`'s stored state.
+public struct EchoSnapshot: Codable, Sendable {
     public var id: UUID
     public var text: String
     public var intervalHours: Int
     public var lastDismissedAt: Date?
     public var sortIndex: Int
 
-    public init(from intention: Intention) {
-        id = intention.id
-        text = intention.text
-        intervalHours = intention.intervalHours
-        lastDismissedAt = intention.lastDismissedAt
-        sortIndex = intention.sortIndex
+    public init(from echo: Echo) {
+        id = echo.id
+        text = echo.text
+        intervalHours = echo.intervalHours
+        lastDismissedAt = echo.lastDismissedAt
+        sortIndex = echo.sortIndex
     }
 
-    public func makeModel() -> Intention {
-        let intention = Intention(text: text, intervalHours: intervalHours, sortIndex: sortIndex)
-        intention.id = id
-        intention.lastDismissedAt = lastDismissedAt
-        return intention
+    public func makeModel() -> Echo {
+        let echo = Echo(text: text, intervalHours: intervalHours, sortIndex: sortIndex)
+        echo.id = id
+        echo.lastDismissedAt = lastDismissedAt
+        return echo
     }
 }
 
@@ -113,26 +117,68 @@ public struct LongTermMemorySnapshot: Codable, Sendable {
 /// shape change — bump it and branch in `restore` if the schema ever diverges.
 public struct MemoryEchoBackup: Codable, Sendable {
     /// Current on-disk format version. Bump on any breaking shape change.
-    public static let currentVersion = 1
+    public static let currentVersion = 2
 
     public var version: Int
     public var exportedAt: Date
-    public var asks: [AskSnapshot]
-    public var intentions: [IntentionSnapshot]
+    public var shortTermMemories: [ShortTermMemorySnapshot]
+    public var echoes: [EchoSnapshot]
     public var longTermMemories: [LongTermMemorySnapshot]
 
     public init(
         version: Int = MemoryEchoBackup.currentVersion,
         exportedAt: Date = .now,
-        asks: [AskSnapshot],
-        intentions: [IntentionSnapshot],
+        shortTermMemories: [ShortTermMemorySnapshot],
+        echoes: [EchoSnapshot],
         longTermMemories: [LongTermMemorySnapshot]
     ) {
         self.version = version
         self.exportedAt = exportedAt
-        self.asks = asks
-        self.intentions = intentions
+        self.shortTermMemories = shortTermMemories
+        self.echoes = echoes
         self.longTermMemories = longTermMemories
+    }
+
+    /// Accept both v1 ("asks"/"intentions") and v2 ("shortTermMemories"/"echoes")
+    /// JSON. Tries the v2 keys first; falls back to v1 so hand-edited files and
+    /// old exports continue to import cleanly.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        version = try container.decode(Int.self, forKey: .version)
+        exportedAt = try container.decode(Date.self, forKey: .exportedAt)
+        longTermMemories = try container.decodeIfPresent([LongTermMemorySnapshot].self, forKey: .longTermMemories) ?? []
+
+        // v2 key first, fall back to v1.
+        if let stm = try container.decodeIfPresent([ShortTermMemorySnapshot].self, forKey: .shortTermMemories) {
+            shortTermMemories = stm
+        } else if let asks = try container.decodeIfPresent([ShortTermMemorySnapshot].self, forKey: .asks) {
+            shortTermMemories = asks
+        } else {
+            shortTermMemories = []
+        }
+
+        if let echoArr = try container.decodeIfPresent([EchoSnapshot].self, forKey: .echoes) {
+            echoes = echoArr
+        } else if let intentions = try container.decodeIfPresent([EchoSnapshot].self, forKey: .intentions) {
+            echoes = intentions
+        } else {
+            echoes = []
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(version, forKey: .version)
+        try container.encode(exportedAt, forKey: .exportedAt)
+        try container.encode(shortTermMemories, forKey: .shortTermMemories)
+        try container.encode(echoes, forKey: .echoes)
+        try container.encode(longTermMemories, forKey: .longTermMemories)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case version, exportedAt, longTermMemories
+        case shortTermMemories, echoes
+        case asks, intentions
     }
 }
 
@@ -176,13 +222,13 @@ public enum BackupService {
     /// Snapshot the entire store into an encodable backup.
     @MainActor
     public static func makeBackup(from context: ModelContext) throws -> MemoryEchoBackup {
-        let asks = try context.fetch(FetchDescriptor<Ask>())
-        let intentions = try context.fetch(FetchDescriptor<Intention>())
-        let memories = try context.fetch(FetchDescriptor<LongTermMemory>())
+        let memories = try context.fetch(FetchDescriptor<ShortTermMemory>())
+        let echoes = try context.fetch(FetchDescriptor<Echo>())
+        let longTerm = try context.fetch(FetchDescriptor<LongTermMemory>())
         return MemoryEchoBackup(
-            asks: asks.map(AskSnapshot.init(from:)),
-            intentions: intentions.map(IntentionSnapshot.init(from:)),
-            longTermMemories: memories.map(LongTermMemorySnapshot.init(from:))
+            shortTermMemories: memories.map(ShortTermMemorySnapshot.init(from:)),
+            echoes: echoes.map(EchoSnapshot.init(from:)),
+            longTermMemories: longTerm.map(LongTermMemorySnapshot.init(from:))
         )
     }
 
@@ -202,14 +248,14 @@ public enum BackupService {
         }
 
         // Replace-all: wipe, then insert the file's contents.
-        try context.delete(model: Ask.self)
-        try context.delete(model: Intention.self)
+        try context.delete(model: ShortTermMemory.self)
+        try context.delete(model: Echo.self)
         try context.delete(model: LongTermMemory.self)
 
-        for snapshot in backup.asks {
+        for snapshot in backup.shortTermMemories {
             context.insert(snapshot.makeModel())
         }
-        for snapshot in backup.intentions {
+        for snapshot in backup.echoes {
             context.insert(snapshot.makeModel())
         }
         for snapshot in backup.longTermMemories {
@@ -218,8 +264,8 @@ public enum BackupService {
 
         try context.save()
         // A hand-edited file (or one exported from the pre-fix build) can carry
-        // colliding Ask ids — heal them so the list renders correctly.
-        try StoreMaintenance.deduplicateAskIDs(in: context)
+        // colliding ShortTermMemory ids — heal them so the list renders correctly.
+        try StoreMaintenance.deduplicateShortTermMemoryIDs(in: context)
     }
 
     /// A dated, filesystem-safe default filename for the export sheet.

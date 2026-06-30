@@ -28,33 +28,33 @@ struct BackupTests {
     }
 
     private struct Seeded {
-        let ask: Ask
-        let intention: Intention
-        let memory: LongTermMemory
+        let memory: ShortTermMemory
+        let echo: Echo
+        let longTerm: LongTermMemory
     }
 
     /// Insert one of each model, with non-default state (completed, dismissed,
     /// a cached glyph) so the round-trip has something real to lose.
     private func seed(_ context: ModelContext) -> Seeded {
-        let ask = Ask(title: "Call the dentist", effort: .long, horizon: .laterThisWeek)
-        ask.completedAt = Date(timeIntervalSince1970: 5000)
-        ask.cachedGlyph = "phone.fill"
+        let memory = ShortTermMemory(title: "Call the dentist", effort: .long, horizon: .laterThisWeek)
+        memory.completedAt = Date(timeIntervalSince1970: 5000)
+        memory.cachedGlyph = "phone.fill"
 
-        let intention = Intention(text: "Breathe", intervalHours: 12, sortIndex: 2)
-        intention.lastDismissedAt = Date(timeIntervalSince1970: 6000)
+        let echo = Echo(text: "Breathe", intervalHours: 12, sortIndex: 2)
+        echo.lastDismissedAt = Date(timeIntervalSince1970: 6000)
 
-        let memory = LongTermMemory(text: "Paint the shower", isHighPriority: true)
+        let longTerm = LongTermMemory(text: "Paint the shower", isHighPriority: true)
 
-        context.insert(ask)
-        context.insert(intention)
         context.insert(memory)
-        return Seeded(ask: ask, intention: intention, memory: memory)
+        context.insert(echo)
+        context.insert(longTerm)
+        return Seeded(memory: memory, echo: echo, longTerm: longTerm)
     }
 
     @Test func roundTripPreservesEveryField() throws {
         let source = try makeContext()
         let seeded = seed(source)
-        let (ask, intention, memory) = (seeded.ask, seeded.intention, seeded.memory)
+        let (memory, echo, longTerm) = (seeded.memory, seeded.echo, seeded.longTerm)
         try source.save()
 
         let data = try BackupService.exportData(from: source)
@@ -63,70 +63,70 @@ struct BackupTests {
         let restored = try makeContext()
         try BackupService.importData(data, into: restored)
 
-        let asks = try restored.fetch(FetchDescriptor<Ask>())
-        let intentions = try restored.fetch(FetchDescriptor<Intention>())
-        let memories = try restored.fetch(FetchDescriptor<LongTermMemory>())
+        let memories = try restored.fetch(FetchDescriptor<ShortTermMemory>())
+        let echoes = try restored.fetch(FetchDescriptor<Echo>())
+        let longTerms = try restored.fetch(FetchDescriptor<LongTermMemory>())
 
-        #expect(asks.count == 1)
-        #expect(intentions.count == 1)
         #expect(memories.count == 1)
-
-        let restoredAsk = try #require(asks.first)
-        #expect(restoredAsk.id == ask.id)
-        #expect(restoredAsk.title == ask.title)
-        #expect(restoredAsk.effort == .long)
-        #expect(restoredAsk.horizon == .laterThisWeek)
-        #expect(sameInstant(restoredAsk.horizonSetAt, ask.horizonSetAt))
-        #expect(sameInstant(restoredAsk.completedAt, ask.completedAt))
-        #expect(restoredAsk.cachedGlyph == "phone.fill")
-
-        let restoredIntention = try #require(intentions.first)
-        #expect(restoredIntention.id == intention.id)
-        #expect(restoredIntention.text == intention.text)
-        #expect(restoredIntention.intervalHours == 12)
-        #expect(restoredIntention.sortIndex == 2)
-        #expect(sameInstant(restoredIntention.lastDismissedAt, intention.lastDismissedAt))
+        #expect(echoes.count == 1)
+        #expect(longTerms.count == 1)
 
         let restoredMemory = try #require(memories.first)
         #expect(restoredMemory.id == memory.id)
-        #expect(restoredMemory.text == memory.text)
-        #expect(restoredMemory.isHighPriority)
+        #expect(restoredMemory.title == memory.title)
+        #expect(restoredMemory.effort == .long)
+        #expect(restoredMemory.horizon == .laterThisWeek)
+        #expect(sameInstant(restoredMemory.horizonSetAt, memory.horizonSetAt))
+        #expect(sameInstant(restoredMemory.completedAt, memory.completedAt))
+        #expect(restoredMemory.cachedGlyph == "phone.fill")
+
+        let restoredEcho = try #require(echoes.first)
+        #expect(restoredEcho.id == echo.id)
+        #expect(restoredEcho.text == echo.text)
+        #expect(restoredEcho.intervalHours == 12)
+        #expect(restoredEcho.sortIndex == 2)
+        #expect(sameInstant(restoredEcho.lastDismissedAt, echo.lastDismissedAt))
+
+        let restoredLongTerm = try #require(longTerms.first)
+        #expect(restoredLongTerm.id == longTerm.id)
+        #expect(restoredLongTerm.text == longTerm.text)
+        #expect(restoredLongTerm.isHighPriority)
     }
 
     @Test func importReplacesRatherThanMerges() throws {
-        // A backup with a single ask.
+        // A backup with a single memory.
         let source = try makeContext()
-        let keeper = Ask(title: "From the backup")
+        let keeper = ShortTermMemory(title: "From the backup")
         source.insert(keeper)
         try source.save()
         let data = try BackupService.exportData(from: source)
 
         // A destination that already holds different data.
         let destination = try makeContext()
-        destination.insert(Ask(title: "Pre-existing ask"))
-        destination.insert(Intention(text: "Pre-existing intention"))
+        destination.insert(ShortTermMemory(title: "Pre-existing memory"))
+        destination.insert(Echo(text: "Pre-existing echo"))
         try destination.save()
 
         try BackupService.importData(data, into: destination)
 
-        let asks = try destination.fetch(FetchDescriptor<Ask>())
-        let intentions = try destination.fetch(FetchDescriptor<Intention>())
+        let memories = try destination.fetch(FetchDescriptor<ShortTermMemory>())
+        let echoes = try destination.fetch(FetchDescriptor<Echo>())
         // Everything that was there is gone; only the backup's contents remain.
-        #expect(asks.count == 1)
-        #expect(asks.first?.id == keeper.id)
-        #expect(intentions.isEmpty)
+        #expect(memories.count == 1)
+        #expect(memories.first?.id == keeper.id)
+        #expect(echoes.isEmpty)
     }
 
     @Test func importHealsCollidingIDsFromTheFile() throws {
-        // A file (like a pre-fix export) whose asks all share one id.
+        // A file (like a pre-fix export) whose memories all share one id.
         let shared = UUID()
         let backup = MemoryEchoBackup(
-            asks: ["X", "Y"].map {
-                var snap = AskSnapshot(from: Ask(title: $0))
+            shortTermMemories: ["X", "Y"].map {
+                var snap = ShortTermMemorySnapshot(from: ShortTermMemory(title: $0))
                 snap.id = shared
                 return snap
             },
-            intentions: [],
+            echoes: [],
             longTermMemories: []
         )
         let data = try BackupService.makeEncoder().encode(backup)
@@ -134,16 +134,16 @@ struct BackupTests {
         let context = try makeContext()
         try BackupService.importData(data, into: context)
 
-        let asks = try context.fetch(FetchDescriptor<Ask>())
-        #expect(asks.count == 2)
-        #expect(Set(asks.map(\.id)).count == 2)
+        let memories = try context.fetch(FetchDescriptor<ShortTermMemory>())
+        #expect(memories.count == 2)
+        #expect(Set(memories.map(\.id)).count == 2)
     }
 
     @Test func rejectsBackupFromANewerFormat() throws {
         let future = MemoryEchoBackup(
             version: MemoryEchoBackup.currentVersion + 1,
-            asks: [],
-            intentions: [],
+            shortTermMemories: [],
+            echoes: [],
             longTermMemories: []
         )
         let data = try BackupService.makeEncoder().encode(future)
@@ -152,5 +152,31 @@ struct BackupTests {
         #expect(throws: BackupError.self) {
             try BackupService.importData(data, into: context)
         }
+    }
+
+    @Test func v1JSONImportsViaBackwardCompatDecoder() throws {
+        // Simulate a v1 backup (uses "asks" / "intentions" keys).
+        let v1JSON = """
+        {
+          "version": 1,
+          "exportedAt": "2026-06-30T12:00:00Z",
+          "asks": [{"id": "00000000-0000-0000-0000-000000000001", "title": "Old ask",
+            "createdAt": "2026-06-30T12:00:00Z", "horizonRaw": "today",
+            "horizonSetAt": "2026-06-30T12:00:00Z", "effortRaw": "quick"}],
+          "intentions": [{"id": "00000000-0000-0000-0000-000000000002",
+            "text": "Old intention", "intervalHours": 12, "sortIndex": 0}],
+          "longTermMemories": []
+        }
+        """
+        let data = try #require(v1JSON.data(using: .utf8))
+        let context = try makeContext()
+        try BackupService.importData(data, into: context)
+
+        let memories = try context.fetch(FetchDescriptor<ShortTermMemory>())
+        let echoes = try context.fetch(FetchDescriptor<Echo>())
+        #expect(memories.count == 1)
+        #expect(memories.first?.title == "Old ask")
+        #expect(echoes.count == 1)
+        #expect(echoes.first?.text == "Old intention")
     }
 }

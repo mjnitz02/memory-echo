@@ -22,7 +22,7 @@ import Foundation
 public enum GlyphResolver {
     /// The best SF Symbol for `title` per the on-device model, or nil if the
     /// model can't answer (unavailable, still loading, or errored). Never
-    /// throws — the caller falls back to `AskGlyph.symbol(for:)`.
+    /// throws — the caller falls back to `MemoryGlyph.symbol(for:)`.
     public static func symbol(for title: String) async -> String? {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }

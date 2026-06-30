@@ -5,10 +5,11 @@
 //  The shrink engine, as pure functions (Phase 3). No SwiftUI, no SwiftData —
 //  just date math, so it's trivially testable and shared by app + widget.
 //
-//  The whole "intelligence" of v1: an ask carries a few days of buffer when its
-//  horizon is set, and that buffer burns down by the calendar. As it runs out
-//  the ask drifts toward Today on its own, its color deepens, and eventually it
-//  earns a nudge. No timers, no cron — everything is computed for a given `now`.
+//  The whole "intelligence" of v1: a short-term memory carries a few days of
+//  buffer when its horizon is set, and that buffer burns down by the calendar.
+//  As it runs out the memory drifts toward Today on its own, its color deepens,
+//  and eventually it earns a nudge. No timers, no cron — everything is computed
+//  for a given `now`.
 //
 
 import Foundation
@@ -36,7 +37,7 @@ public enum Scheduling {
         buffer - daysElapsed(from: setAt, to: now, calendar: calendar)
     }
 
-    /// Where the ask effectively sits now (3-way, used for grouping/logic).
+    /// Where the memory effectively sits now (3-way, used for grouping/logic).
     /// `overdue` collapses into `today` here — overdue is a *color* distinction.
     public static func effectiveHorizon(daysRemaining: Int) -> Horizon {
         if daysRemaining <= 0 { return .today }
@@ -44,8 +45,9 @@ public enum Scheduling {
         return .laterThisWeek
     }
 
-    /// Where the ask sits on the 4-way color/staleness axis. This is what makes
-    /// the list alive: bands climb later → tomorrow → today → overdue over days.
+    /// Where the memory sits on the 4-way color/staleness axis. This is what
+    /// makes the list alive: bands climb later → tomorrow → today → overdue over
+    /// days.
     public static func colorStop(daysRemaining: Int) -> ColorStop {
         if daysRemaining < 0 { return .overdue }
         if daysRemaining == 0 { return .today }
@@ -53,17 +55,17 @@ public enum Scheduling {
         return .later
     }
 
-    /// A still-open ask that's been stuck past Today for a while earns the
+    /// A still-open memory that's been stuck past Today for a while earns the
     /// accountability nudge (do it / reset / delete).
     public static func needsNudge(daysRemaining: Int, isOpen: Bool) -> Bool {
         isOpen && daysRemaining <= Tuning.nudgeThresholdDays
     }
 
-    /// Whether an ephemeral intention should currently be on screen. It shows
-    /// until tapped, then hides for its interval and quietly echoes back once
-    /// `intervalHours` have elapsed since the dismissal. Never dismissed = always
-    /// showing. Pure date math so it's testable and the widget can reuse it.
-    public static func intentionIsShowing(
+    /// Whether an echo should currently be on screen. It shows until tapped, then
+    /// hides for its interval and quietly echoes back once `intervalHours` have
+    /// elapsed since the dismissal. Never dismissed = always showing. Pure date
+    /// math so it's testable and the widget can reuse it.
+    public static func echoIsShowing(
         lastDismissedAt: Date?,
         intervalHours: Int,
         now: Date
@@ -72,13 +74,13 @@ public enum Scheduling {
         return now.timeIntervalSince(dismissed) >= Double(intervalHours) * 3600
     }
 
-    /// The exact instant a dismissed intention echoes back: dismissal +
-    /// interval. `nil` when it was never dismissed (it's already showing, so
-    /// there's no future transition to schedule). The returned date may be in
-    /// the past — a caller building a widget timeline filters it against `now`
-    /// to keep only still-pending returns. This is what lets the widget render
-    /// the echo at the precise second instead of catching up on a poll tick.
-    public static func intentionReturnDate(
+    /// The exact instant a dismissed echo resurfaces: dismissal + interval. `nil`
+    /// when it was never dismissed (it's already showing, so there's no future
+    /// transition to schedule). The returned date may be in the past — a caller
+    /// building a widget timeline filters it against `now` to keep only still-
+    /// pending returns. This is what lets the widget render the echo at the
+    /// precise second instead of catching up on a poll tick.
+    public static func echoReturnDate(
         lastDismissedAt: Date?,
         intervalHours: Int
     ) -> Date? {
@@ -134,11 +136,11 @@ public enum Scheduling {
     }
 
     /// The composite sort value for the Today order: staleness is the spine, but
-    /// an ask whose effort matches the current hour's preference gets a small
+    /// a memory whose effort matches the current hour's preference gets a small
     /// fractional advantage (`Tuning.timeOfDayBoost`). At < 1 the boost is a pure
-    /// *same-day tie-break* — a matching ask rises among equally-stale ones but
-    /// never leapfrogs a genuinely-staler ask, so a truly-overdue mismatch still
-    /// wins. Lower value sorts higher (nearer the top). See [[EffortProfile]].
+    /// *same-day tie-break* — a matching memory rises among equally-stale ones but
+    /// never leapfrogs a genuinely-staler memory, so a truly-overdue mismatch
+    /// still wins. Lower value sorts higher (nearer the top). See [[EffortProfile]].
     public static func todaySortValue(
         daysRemaining: Int,
         effort: Effort,

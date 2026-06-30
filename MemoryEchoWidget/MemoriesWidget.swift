@@ -1,19 +1,19 @@
 //
-//  TasksWidget.swift
+//  MemoriesWidget.swift
 //  MemoryEchoWidget
 //
-//  Widget ① — Large (4×4). Your top asks plus an add button, nothing else.
+//  Widget ① — Large (4×4). Your top memories plus an add button, nothing else.
 //  Tapping the "+" opens the app on the capture sheet; tapping anywhere else
-//  opens the app. No intentions here — those live in their own widget.
+//  opens the app. No echoes here — those live in their own widget.
 //
 
 import MemoryEchoCore
 import SwiftUI
 import WidgetKit
 
-struct TasksEntry: TimelineEntry {
+struct MemoriesEntry: TimelineEntry {
     let date: Date
-    let asks: [AskSnapshot]
+    let memories: [ShortTermMemorySnapshot]
     /// The user's "tasks to display" setting — the band column is divided into
     /// this many fixed slots, so each band is 1/maxTasks of the height
     /// regardless of how many are actually showing.
@@ -22,60 +22,60 @@ struct TasksEntry: TimelineEntry {
     /// Lights the lime review echo left of the "+": long-term memory has gone
     /// unopened past its interval (see LongTermConfig).
     var longTermEchoActive = false
-    /// Open asks that didn't fit in the `maxTasks` slots. Drives the quiet
-    /// "N more · not shown" footer — a passive truth-signal that asks are
+    /// Open memories that didn't fit in the `maxTasks` slots. Drives the quiet
+    /// "N more · not shown" footer — a passive truth-signal that memories are
     /// piling up, only ever shown when the column is already full.
     var hiddenCount = 0
 
-    static let placeholder = TasksEntry(date: .now, asks: [
+    static let placeholder = MemoriesEntry(date: .now, memories: [
         .init(title: "Call the dentist", glyph: "phone.fill", effort: .quick, stop: .overdue),
         .init(title: "Fix the garden gate", glyph: "wrench.and.screwdriver.fill", effort: .long, stop: .today),
         .init(title: "Buy groceries", glyph: "cart.fill", effort: .quick, stop: .tomorrow)
     ], maxTasks: 3)
 }
 
-struct TasksProvider: TimelineProvider {
-    func placeholder(in _: Context) -> TasksEntry {
+struct MemoriesProvider: TimelineProvider {
+    func placeholder(in _: Context) -> MemoriesEntry {
         .placeholder
     }
 
-    func getSnapshot(in context: Context, completion: @escaping (TasksEntry) -> Void) {
+    func getSnapshot(in context: Context, completion: @escaping (MemoriesEntry) -> Void) {
         completion(context.isPreview ? .placeholder : loadEntry())
     }
 
-    func getTimeline(in _: Context, completion: @escaping (Timeline<TasksEntry>) -> Void) {
-        // The ask order ages by the day and shifts with the time-of-day effort
+    func getTimeline(in _: Context, completion: @escaping (Timeline<MemoriesEntry>) -> Void) {
+        // The memory order ages by the day and shifts with the time-of-day effort
         // boost, so we plot a precomputed entry at each midnight and effort-flip
         // hour — the widget re-ranks exactly when the app would, instead of
         // lagging until the next add/complete. `.atEnd` refreshes once they're
         // spent. Settings and the open/long-term counts are stable across the
         // window, so they're read once; only the per-instant pieces vary.
         let settings = WidgetSettings.load()
-        let openCount = WidgetStore.openAskCount()
+        let openCount = WidgetStore.openMemoryCount()
         let hasLongTerm = WidgetStore.longTermOpenCount() > 0
         let config = LongTermConfig.load()
-        let entries = WidgetStore.taskSlices(now: .now, limit: settings.maxTasks).map { slice in
-            TasksEntry(
+        let entries = WidgetStore.memorySlices(now: .now, limit: settings.maxTasks).map { slice in
+            MemoriesEntry(
                 date: slice.date,
-                asks: slice.asks,
+                memories: slice.memories,
                 maxTasks: settings.maxTasks,
                 backgroundOpacity: settings.backgroundOpacity,
                 longTermEchoActive: config.echoIsActive(hasItems: hasLongTerm, now: slice.date),
-                hiddenCount: max(0, openCount - slice.asks.count)
+                hiddenCount: max(0, openCount - slice.memories.count)
             )
         }
         completion(Timeline(entries: entries, policy: .atEnd))
     }
 
-    private func loadEntry(now: Date = .now) -> TasksEntry {
+    private func loadEntry(now: Date = .now) -> MemoriesEntry {
         let settings = WidgetSettings.load()
         let hasLongTerm = WidgetStore.longTermOpenCount() > 0
         let echo = LongTermConfig.load().echoIsActive(hasItems: hasLongTerm, now: now)
-        let asks = WidgetStore.topAsks(now: now, limit: settings.maxTasks)
-        let hidden = max(0, WidgetStore.openAskCount() - asks.count)
-        return TasksEntry(
+        let memories = WidgetStore.topMemories(now: now, limit: settings.maxTasks)
+        let hidden = max(0, WidgetStore.openMemoryCount() - memories.count)
+        return MemoriesEntry(
             date: now,
-            asks: asks,
+            memories: memories,
             maxTasks: settings.maxTasks,
             backgroundOpacity: settings.backgroundOpacity,
             longTermEchoActive: echo,
@@ -84,8 +84,8 @@ struct TasksProvider: TimelineProvider {
     }
 }
 
-struct TasksWidgetEntryView: View {
-    var entry: TasksEntry
+struct MemoriesWidgetEntryView: View {
+    var entry: MemoriesEntry
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -107,14 +107,14 @@ struct TasksWidgetEntryView: View {
                 }
             }
 
-            if entry.asks.isEmpty {
+            if entry.memories.isEmpty {
                 WidgetEmptyState(text: "All clear ✨")
             } else {
                 // The column is divided into `maxTasks` equal slots: each band is
                 // 1/maxTasks of the height, and any unfilled slots stay empty
                 // (so 2 shown of 5 set → two bands at 20%, not 50%).
-                ForEach(entry.asks) { AskRow(ask: $0, fillHeight: true) }
-                let emptySlots = max(0, entry.maxTasks - entry.asks.count)
+                ForEach(entry.memories) { ShortTermMemoryRow(memory: $0, fillHeight: true) }
+                let emptySlots = max(0, entry.maxTasks - entry.memories.count)
                 if emptySlots > 0 {
                     ForEach(0 ..< emptySlots, id: \.self) { _ in
                         Color.clear.frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -136,15 +136,16 @@ struct TasksWidgetEntryView: View {
     }
 }
 
-struct TasksWidget: Widget {
+struct MemoriesWidget: Widget {
+    /// Keep kind string for backward compat with existing widget placements.
     let kind = "MemoryEchoTasks"
 
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: kind, provider: TasksProvider()) { entry in
-            TasksWidgetEntryView(entry: entry)
+        StaticConfiguration(kind: kind, provider: MemoriesProvider()) { entry in
+            MemoriesWidgetEntryView(entry: entry)
         }
-        .configurationDisplayName("Tasks")
-        .description("Your top asks, plus quick add.")
+        .configurationDisplayName("Memories")
+        .description("Your top memories, plus quick add.")
         .supportedFamilies([.systemLarge])
     }
 }
