@@ -35,6 +35,63 @@ struct TimeOfDayBoostTests {
     }
 }
 
+struct EffortFlipInstantsTests {
+    /// A fixed calendar/clock so the boundary math is deterministic.
+    private let calendar = Calendar(identifier: .gregorian)
+
+    private func date(_ hour: Int, _ minute: Int = 0) -> Date {
+        var components = DateComponents()
+        components.year = 2026
+        components.month = 6
+        components.day = 30
+        components.hour = hour
+        components.minute = minute
+        return calendar.date(from: components)!
+    }
+
+    @Test func defaultProfileNeverFlips() {
+        let flips = Scheduling.effortFlipInstants(
+            profile: .default,
+            now: date(0),
+            windowEnd: date(23, 59),
+            calendar: calendar
+        )
+        #expect(flips.isEmpty)
+    }
+
+    @Test func flipsLandAtEachPreferenceBoundary() {
+        // Long only from 13:00–16:59; Quick the rest of the day → two flips:
+        // up at 13:00 and back down at 17:00.
+        var profile = EffortProfile.default
+        for hour in 13 ... 16 {
+            profile = profile.setting(.long, atHour: hour)
+        }
+        let flips = Scheduling.effortFlipInstants(
+            profile: profile,
+            now: date(0),
+            windowEnd: date(23, 59),
+            calendar: calendar
+        )
+        #expect(flips == [date(13), date(17)])
+    }
+
+    @Test func onlyIncludesFlipsAfterNowWithinTheWindow() {
+        var profile = EffortProfile.default
+        for hour in 13 ... 16 {
+            profile = profile.setting(.long, atHour: hour)
+        }
+        // Start at 14:00 (mid-Long) so the 13:00 flip is already past, and stop
+        // the window at 16:00 so the 17:00 flip-back is out of range.
+        let flips = Scheduling.effortFlipInstants(
+            profile: profile,
+            now: date(14),
+            windowEnd: date(16),
+            calendar: calendar
+        )
+        #expect(flips.isEmpty)
+    }
+}
+
 struct EffortProfileTests {
     @Test func defaultIsAllQuickAcrossEveryHour() {
         let profile = EffortProfile.default

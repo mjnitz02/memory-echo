@@ -44,7 +44,27 @@ struct TasksProvider: TimelineProvider {
     }
 
     func getTimeline(in _: Context, completion: @escaping (Timeline<TasksEntry>) -> Void) {
-        completion(Timeline(entries: [loadEntry()], policy: .after(WidgetRefresh.nextMidnight())))
+        // The ask order ages by the day and shifts with the time-of-day effort
+        // boost, so we plot a precomputed entry at each midnight and effort-flip
+        // hour — the widget re-ranks exactly when the app would, instead of
+        // lagging until the next add/complete. `.atEnd` refreshes once they're
+        // spent. Settings and the open/long-term counts are stable across the
+        // window, so they're read once; only the per-instant pieces vary.
+        let settings = WidgetSettings.load()
+        let openCount = WidgetStore.openAskCount()
+        let hasLongTerm = WidgetStore.longTermOpenCount() > 0
+        let config = LongTermConfig.load()
+        let entries = WidgetStore.taskSlices(now: .now, limit: settings.maxTasks).map { slice in
+            TasksEntry(
+                date: slice.date,
+                asks: slice.asks,
+                maxTasks: settings.maxTasks,
+                backgroundOpacity: settings.backgroundOpacity,
+                longTermEchoActive: config.echoIsActive(hasItems: hasLongTerm, now: slice.date),
+                hiddenCount: max(0, openCount - slice.asks.count)
+            )
+        }
+        completion(Timeline(entries: entries, policy: .atEnd))
     }
 
     private func loadEntry(now: Date = .now) -> TasksEntry {
