@@ -103,6 +103,36 @@ public enum Scheduling {
         return daysElapsed(from: opened, to: now, calendar: calendar) >= intervalDays
     }
 
+    /// The top-of-hour instants in `(now, windowEnd]` where `profile`'s preferred
+    /// effort differs from the hour before — i.e. every instant the time-of-day
+    /// boost could re-order the Today list, which a widget timeline plots an entry
+    /// at so it re-ranks exactly when the app would (instead of lagging an hour
+    /// behind). An all-default profile never flips, so the result is empty. Walks
+    /// hour boundaries via the calendar to stay wall-clock-aligned across DST.
+    public static func effortFlipInstants(
+        profile: EffortProfile,
+        now: Date,
+        windowEnd: Date,
+        calendar: Calendar = .current
+    ) -> [Date] {
+        guard profile.isCustomized, windowEnd > now else { return [] }
+        var moments: [Date] = []
+        var cursor = now
+        while let topOfHour = calendar.nextDate(
+            after: cursor,
+            matching: DateComponents(minute: 0, second: 0),
+            matchingPolicy: .nextTime
+        ), topOfHour <= windowEnd {
+            let hour = calendar.component(.hour, from: topOfHour)
+            let previousHour = (hour + 23) % 24
+            if profile.preferredEffort(atHour: hour) != profile.preferredEffort(atHour: previousHour) {
+                moments.append(topOfHour)
+            }
+            cursor = topOfHour
+        }
+        return moments
+    }
+
     /// The composite sort value for the Today order: staleness is the spine, but
     /// an ask whose effort matches the current hour's preference gets a small
     /// fractional advantage (`Tuning.timeOfDayBoost`). At < 1 the boost is a pure

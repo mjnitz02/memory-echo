@@ -108,9 +108,28 @@ enum WidgetStore {
     /// returns at least the `now` slice.
     static func intentionSlices(now: Date, limit: Int) -> [IntentionSlice] {
         let intentions = nonEmptyIntentions()
-        return transitionInstants(intentions: intentions, now: now, includeMidnights: false)
+        return transitionInstants(intentions: intentions, now: now, includeMidnights: false, includeEffortFlips: false)
             .map { moment in
                 IntentionSlice(date: moment, intentions: showingIntentions(intentions, asOf: moment, limit: limit))
+            }
+    }
+
+    /// One Tasks-widget entry's ranked asks as they stand at a transition instant.
+    struct TaskSlice {
+        let date: Date
+        let asks: [AskSnapshot]
+    }
+
+    /// Timeline slices for the Tasks widget (asks only). The order ages by the
+    /// day (each midnight) and shifts with the time-of-day effort boost (each
+    /// hour the profile flips), so we precompute an entry at every such instant
+    /// — the widget re-ranks exactly when the app would, with no polling. Always
+    /// returns at least the `now` slice.
+    static func taskSlices(now: Date, limit: Int) -> [TaskSlice] {
+        let asks = openAsks()
+        return transitionInstants(intentions: [], now: now, includeMidnights: true, includeEffortFlips: true)
+            .map { moment in
+                TaskSlice(date: moment, asks: rankedAsks(asks, now: moment, limit: limit))
             }
     }
 
@@ -135,7 +154,7 @@ enum WidgetStore {
     static func overviewSlices(now: Date, taskLimit: Int, intentionLimit: Int) -> [OverviewSlice] {
         let asks = openAsks()
         let intentions = nonEmptyIntentions()
-        return transitionInstants(intentions: intentions, now: now, includeMidnights: true)
+        return transitionInstants(intentions: intentions, now: now, includeMidnights: true, includeEffortFlips: true)
             .map { moment in
                 OverviewSlice(
                     date: moment,
@@ -149,11 +168,13 @@ enum WidgetStore {
 
     /// The sorted, de-duped instants at which a widget's content changes inside
     /// the look-ahead window: always `now`, each still-pending intention
-    /// echo-back, and (for content that ages by the day) each midnight.
+    /// echo-back, (for content that ages by the day) each midnight, and (for the
+    /// ask order) each hour the effort profile flips its preference.
     private static func transitionInstants(
         intentions: [Intention],
         now: Date,
-        includeMidnights: Bool
+        includeMidnights: Bool,
+        includeEffortFlips: Bool
     ) -> [Date] {
         let windowEnd = now.addingTimeInterval(WidgetRefresh.lookAheadHours * 3600)
         var moments: Set<Date> = [now]
@@ -168,6 +189,9 @@ enum WidgetStore {
                 moments.insert(midnight)
                 midnight = WidgetRefresh.nextMidnight(after: midnight)
             }
+        }
+        if includeEffortFlips {
+            moments.formUnion(WidgetRefresh.effortFlipInstants(now: now, windowEnd: windowEnd))
         }
         return moments.sorted()
     }
@@ -185,11 +209,26 @@ enum WidgetStore {
         return intentions.filter { !$0.text.trimmingCharacters(in: .whitespaces).isEmpty }
     }
 
+    /// Same order the app's Today list uses: staleness is the spine, with the
+    /// current hour's preferred effort giving a matching ask a gentle tie-break
+    /// boost (Scheduling.todaySortValue). Reading the profile here — and ranking
+    /// per `now` — is what lets the widget agree with the app at every instant,
+    /// including across an hour where the preference flips Quick↔Long.
     private static func rankedAsks(_ asks: [Ask], now: Date, limit: Int) -> [AskSnapshot] {
-        asks
+        let preferred = EffortProfile.load().preferredEffort(asOf: now)
+        return asks
             .sorted { a, b in
-                let ra = a.daysRemaining(asOf: now), rb = b.daysRemaining(asOf: now)
-                return ra != rb ? ra < rb : a.createdAt < b.createdAt
+                let va = Scheduling.todaySortValue(
+                    daysRemaining: a.daysRemaining(asOf: now),
+                    effort: a.effort,
+                    preferredEffort: preferred
+                )
+                let vb = Scheduling.todaySortValue(
+                    daysRemaining: b.daysRemaining(asOf: now),
+                    effort: b.effort,
+                    preferredEffort: preferred
+                )
+                return va != vb ? va < vb : a.createdAt < b.createdAt
             }
             .prefix(limit)
             .map { AskSnapshot(ask: $0, now: now) }
@@ -219,6 +258,13 @@ enum WidgetRefresh {
             matching: DateComponents(hour: 0, minute: 1),
             matchingPolicy: .nextTime
         ) ?? date.addingTimeInterval(6 * 3600)
+    }
+
+    /// The instants the live effort profile flips its preference within the
+    /// window — see `Scheduling.effortFlipInstants`. An all-default profile never
+    /// flips, so this is empty and adds no timeline entries.
+    static func effortFlipInstants(now: Date, windowEnd: Date) -> [Date] {
+        Scheduling.effortFlipInstants(profile: EffortProfile.load(), now: now, windowEnd: windowEnd)
     }
 }
 
