@@ -1,11 +1,11 @@
 //
-//  IntentionsView.swift
+//  EchoesView.swift
 //  MemoryEcho
 //
 //  The second settings screen (pushed from SettingsView): add / remove / set
-//  the echo-back interval for intentions. They're set up once and rarely
-//  touched, so there's deliberately no quick-add anywhere else — intentions are
-//  ambient on the Today screen, configured only here.
+//  the echo-back interval for echoes. They're set up once and rarely touched,
+//  so there's deliberately no quick-add anywhere else — echoes are ambient on
+//  the Today screen, configured only here.
 //
 
 import MemoryEchoCore
@@ -13,30 +13,30 @@ import SwiftData
 import SwiftUI
 import WidgetKit
 
-struct IntentionsView: View {
+struct EchoesView: View {
     @Environment(\.modelContext) private var context
 
-    @Query(sort: \Intention.sortIndex, order: .forward)
-    private var intentions: [Intention]
+    @Query(sort: \Echo.sortIndex, order: .forward)
+    private var echoes: [Echo]
 
     @FocusState private var focused: PersistentIdentifier?
 
     var body: some View {
         List {
             Section {
-                ForEach(intentions) { intention in
-                    intentionRow(intention)
+                ForEach(echoes) { echo in
+                    echoRow(echo)
                 }
                 .onDelete(perform: delete)
             } footer: {
-                Text("Tap an intention on the main screen to dismiss it; it echoes back after its interval.")
+                Text("Tap an echo on the main screen to dismiss it; it echoes back after its interval.")
                     .font(.system(size: 12))
                     .foregroundStyle(.white.opacity(0.4))
             }
 
             Section {
                 Button(action: add) {
-                    Label("Add an intention", systemImage: "plus.circle.fill")
+                    Label("Add an echo", systemImage: "plus.circle.fill")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(.white)
                 }
@@ -46,36 +46,36 @@ struct IntentionsView: View {
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .background(Color.black.ignoresSafeArea())
-        .navigationTitle("Intentions")
+        .navigationTitle("Echoes")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { EditButton() }
         .onDisappear(perform: finishEditing)
     }
 
-    // MARK: A single intention row
+    // MARK: A single echo row
 
-    private func intentionRow(_ intention: Intention) -> some View {
+    private func echoRow(_ echo: Echo) -> some View {
         HStack(spacing: 12) {
             Image(systemName: "sparkle")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.6))
 
-            TextField("Intention", text: bindingText(intention))
+            TextField("Echo", text: bindingText(echo))
                 .font(.system(size: 16, weight: .medium))
                 .foregroundStyle(.white)
-                .focused($focused, equals: intention.persistentModelID)
+                .focused($focused, equals: echo.persistentModelID)
                 .submitLabel(.done)
 
             Spacer(minLength: 8)
 
             Menu {
-                Picker("Interval", selection: bindingInterval(intention)) {
-                    ForEach(Tuning.intentionIntervalChoices, id: \.self) { hours in
+                Picker("Interval", selection: bindingInterval(echo)) {
+                    ForEach(Tuning.echoIntervalChoices, id: \.self) { hours in
                         Text(intervalLabel(hours)).tag(hours)
                     }
                 }
             } label: {
-                Text(intervalLabel(intention.intervalHours))
+                Text(intervalLabel(echo.intervalHours))
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.7))
                     .padding(.horizontal, 10)
@@ -89,26 +89,26 @@ struct IntentionsView: View {
 
     // MARK: Bindings into the SwiftData model
 
-    private func bindingText(_ intention: Intention) -> Binding<String> {
-        Binding(get: { intention.text }, set: { intention.text = $0 })
+    private func bindingText(_ echo: Echo) -> Binding<String> {
+        Binding(get: { echo.text }, set: { echo.text = $0 })
     }
 
-    private func bindingInterval(_ intention: Intention) -> Binding<Int> {
-        Binding(get: { intention.intervalHours }, set: { intention.intervalHours = $0 })
+    private func bindingInterval(_ echo: Echo) -> Binding<Int> {
+        Binding(get: { echo.intervalHours }, set: { echo.intervalHours = $0 })
     }
 
     // MARK: Mutations
 
     private func add() {
-        let nextIndex = (intentions.map(\.sortIndex).max() ?? -1) + 1
-        let intention = Intention(text: "", sortIndex: nextIndex)
-        context.insert(intention)
-        focused = intention.persistentModelID
+        let nextIndex = (echoes.map(\.sortIndex).max() ?? -1) + 1
+        let echo = Echo(text: "", sortIndex: nextIndex)
+        context.insert(echo)
+        focused = echo.persistentModelID
     }
 
     private func delete(at offsets: IndexSet) {
         for index in offsets {
-            context.delete(intentions[index])
+            context.delete(echoes[index])
         }
         persistAndRefreshWidgets()
     }
@@ -122,13 +122,13 @@ struct IntentionsView: View {
         persistAndRefreshWidgets()
     }
 
-    /// Drop intentions left blank (e.g. an "add" the user never named).
+    /// Drop echoes left blank (e.g. an "add" the user never named).
     private func pruneEmpties() {
-        let blanks = intentions.filter {
+        let blanks = echoes.filter {
             $0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         }
-        for intention in blanks {
-            context.delete(intention)
+        for echo in blanks {
+            context.delete(echo)
         }
     }
 
@@ -149,7 +149,7 @@ struct IntentionsView: View {
 }
 
 #Preview {
-    NavigationStack { IntentionsView() }
+    NavigationStack { EchoesView() }
         .modelContainer(MemoryEchoStore.container(inMemory: true))
         .preferredColorScheme(.dark)
 }

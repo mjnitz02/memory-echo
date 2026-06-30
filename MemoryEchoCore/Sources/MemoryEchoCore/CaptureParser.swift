@@ -1,18 +1,18 @@
 //
-//  AskCaptureParser.swift
+//  CaptureParser.swift
 //  MemoryEchoCore
 //
 //  Turns a free-form dictated line ("call the dentist tomorrow") into a
 //  structured capture: a clean title plus an Effort and Horizon. Used by the
 //  hands-free Siri / Shortcuts quick-capture path, where there's no UI to pick
-//  chips — so we infer the two coarse axes from how the ask was spoken.
+//  chips — so we infer the two coarse axes from how the memory was spoken.
 //
 //  Design: capture-first, and DELIBERATELY conservative. Effort/Horizon default
 //  to Quick/Today and are only overridden by clear modifier phrases found at the
 //  START or END of the line (optionally behind a connective like "by"/"it's a").
 //  We never match mid-sentence, so real title words are safe: "plan the week
 //  ahead" keeps its "week". A wrong parse is recoverable — the voice flow shows
-//  a confirmation card and the ask is editable in-app — so the bias is toward
+//  a confirmation card and the memory is editable in-app — so the bias is toward
 //  inferring *something* over forcing everything into the default.
 //
 //  Pure + synchronous so it runs anywhere (incl. a background App Intent) and is
@@ -22,7 +22,7 @@
 import Foundation
 
 /// The structured result of parsing a spoken/typed capture line.
-public struct ParsedAsk: Equatable, Sendable {
+public struct ParsedCapture: Equatable, Sendable {
     public let title: String
     public let effort: Effort
     public let horizon: Horizon
@@ -34,7 +34,7 @@ public struct ParsedAsk: Equatable, Sendable {
     }
 }
 
-public enum AskCaptureParser {
+public enum CaptureParser {
     /// Parse a raw capture line into a title + inferred effort/horizon.
     ///
     /// - Effort defaults to `.quick`, Horizon to `.today`; each is overridden
@@ -43,7 +43,7 @@ public enum AskCaptureParser {
     ///   from the title.
     /// - If stripping would empty the title, the original trimmed line is kept
     ///   (better a cluttered title than a blank one).
-    public static func parse(_ raw: String) -> ParsedAsk {
+    public static func parse(_ raw: String) -> ParsedCapture {
         var working = normalizeWhitespace(raw)
         let original = working
 
@@ -70,7 +70,7 @@ public enum AskCaptureParser {
         }
 
         let title = cleanTitle(working)
-        return ParsedAsk(
+        return ParsedCapture(
             title: title.isEmpty ? original : title,
             effort: effort ?? .quick,
             horizon: horizon ?? .today
@@ -104,7 +104,7 @@ public enum AskCaptureParser {
     /// Effort cues, **longest phrase first**. Kept tight: standalone words that
     /// commonly appear inside real titles (e.g. "big", "small", "easy") are only
     /// honored as part of an explicit "... task" phrase, so we don't misread
-    /// "buy a big bag" as a Long ask.
+    /// "buy a big bag" as a Long memory.
     private static let effortPhrases: [(phrase: String, value: Effort)] = [
         ("this'll take a while", .long),
         ("takes a while", .long),

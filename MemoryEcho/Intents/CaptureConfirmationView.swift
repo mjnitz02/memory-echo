@@ -49,7 +49,7 @@ struct CaptureConfirmationView: View {
         }
         .padding(.horizontal, 18)
         .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
-        .background(AskPalette.gradient(effort: effort, stop: stop))
+        .background(ShortTermPalette.gradient(effort: effort, stop: stop))
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 

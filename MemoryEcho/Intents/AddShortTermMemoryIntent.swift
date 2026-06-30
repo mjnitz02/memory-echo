@@ -1,5 +1,5 @@
 //
-//  AddAskIntent.swift
+//  AddShortTermMemoryIntent.swift
 //  MemoryEcho
 //
 //  Phase 5 — the marquee trigger. An App Intent (surfaced as an App Shortcut)
@@ -14,9 +14,9 @@
 
 import AppIntents
 
-struct AddAskIntent: AppIntent {
+struct AddShortTermMemoryIntent: AppIntent {
     static let title: LocalizedStringResource = "Add to MemoryEcho"
-    static let description = IntentDescription("Open MemoryEcho on the add screen, ready to capture an ask.")
+    static let description = IntentDescription("Open MemoryEcho on the add screen, ready to capture a memory.")
 
     /// Bring the app to the foreground; the capture sheet is presented in-app
     /// once `perform()` flips the CaptureRouter.
@@ -31,10 +31,10 @@ struct AddAskIntent: AppIntent {
 
 struct MemoryEchoShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
-        // Hands-free voice capture: speak the ask, it's saved, app never opens.
+        // Hands-free voice capture: speak the memory, it's saved, app never opens.
         // App Shortcut phrases can't carry a free-form String parameter (only
         // AppEntity/AppEnum), so these are bare triggers — Siri then prompts
-        // "What would you like to remember?" and you dictate the ask.
+        // "What would you like to remember?" and you dictate the memory.
         AppShortcut(
             intent: QuickCaptureIntent(),
             phrases: [
@@ -49,9 +49,9 @@ struct MemoryEchoShortcuts: AppShortcutsProvider {
         // Open-to-add: brings the app up on the keyboard. This is the Action
         // Button path, where you're already looking at the phone and want to type.
         AppShortcut(
-            intent: AddAskIntent(),
+            intent: AddShortTermMemoryIntent(),
             phrases: [
-                "New ask in \(.applicationName)",
+                "New memory in \(.applicationName)",
                 "Open \(.applicationName) to capture"
             ],
             shortTitle: "Add to MemoryEcho",

@@ -1,5 +1,5 @@
 //
-//  AskPalette.swift
+//  ShortTermPalette.swift
 //  MemoryEchoCore
 //
 //  Color is a 2-axis readout, computed (never stored):
@@ -8,16 +8,16 @@
 //    • staleness -> depth within that family (later = pale/calm, today = deep)
 //
 //  Both families are deliberately cool/calm. The ONE place loud color returns is
-//  overdue: once an ask slips past its deadline it abandons the effort family
+//  overdue: once a memory slips past its deadline it abandons the effort family
 //  entirely and enters a uniform "you're ignoring me" alarm that escalates by
 //  the day (magenta → grating pink-red). Effort stops mattering at that point —
-//  what matters is that it isn't being dealt with. Glyph (type) lives in AskGlyph.
+//  what matters is that it isn't being dealt with. Glyph (type) lives in MemoryGlyph.
 //
 
 import SwiftUI
 
-/// Where an ask sits on the staleness axis. In Phase 1 this maps straight from
-/// the stored horizon; the Phase 3 shrink engine produces `.overdue` too.
+/// Where a memory sits on the staleness axis. In Phase 1 this maps straight from
+/// the stored horizon; the shrink engine produces `.overdue` too.
 public enum ColorStop: Sendable {
     case later, tomorrow, today, overdue
 
@@ -30,9 +30,9 @@ public enum ColorStop: Sendable {
     }
 }
 
-public enum AskPalette {
+public enum ShortTermPalette {
     /// Overdue alarm ramp — uniform across effort, escalating by how many days
-    /// the ask has been ignored: harsh magenta on the first overdue day,
+    /// the memory has been ignored: harsh magenta on the first overdue day,
     /// reaching a deliberately grating pink-red by the third.
     private static let overdueStart = "#96006B" // day −1
     private static let overdueEnd = "#FF025E" // day −3 and beyond
@@ -61,7 +61,7 @@ public enum AskPalette {
         return lerpHex(overdueStart, overdueEnd, fraction)
     }
 
-    /// Live band gradient for an ask, given its buffer days remaining. Negative
+    /// Live band gradient for a memory, given its buffer days remaining. Negative
     /// days are overdue and ramp through the uniform alarm scale, ignoring
     /// effort; otherwise this defers to the effort × staleness family.
     public static func gradient(effort: Effort, daysRemaining: Int) -> LinearGradient {

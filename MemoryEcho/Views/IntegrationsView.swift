@@ -30,7 +30,7 @@ struct IntegrationsView: View {
             }
 
             Section {
-                phrase("\"Hey Siri, new ask in MemoryEcho\"")
+                phrase("\"Hey Siri, new memory in MemoryEcho\"")
                 phrase("\"Hey Siri, open MemoryEcho to capture\"")
             } header: {
                 header("Open to the add screen")

@@ -84,7 +84,7 @@ struct EffortProfileView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background {
                 if selected {
-                    AskPalette.gradient(effort: effort, stop: .today)
+                    ShortTermPalette.gradient(effort: effort, stop: .today)
                 } else {
                     Color.white.opacity(0.05)
                 }

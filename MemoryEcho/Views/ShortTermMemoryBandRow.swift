@@ -1,41 +1,41 @@
 //
-//  AskBandRow.swift
+//  ShortTermMemoryBandRow.swift
 //  MemoryEcho
 //
 //  One full-bleed colored band: white glyph + white title over the
 //  effort×staleness gradient. No chrome, no checkbox, no separators.
 //
 //  Color is evaluated `asOf` a passed-in instant (Phase 3) so the band warms
-//  and deepens on its own as the ask ages, and a chronically-ignored ask shows
-//  a pulsing nudge badge.
+//  and deepens on its own as the memory ages, and a chronically-ignored memory
+//  shows a pulsing nudge badge.
 //
 
 import MemoryEchoCore
 import SwiftUI
 
-struct AskBandRow: View {
-    let ask: Ask
+struct ShortTermMemoryBandRow: View {
+    let memory: ShortTermMemory
     /// The instant to evaluate staleness against. The Today list feeds it a
     /// value that refreshes on scene-activation; previews/defaults use now.
     var now: Date = .now
 
     private var daysRemaining: Int {
-        ask.daysRemaining(asOf: now)
+        memory.daysRemaining(asOf: now)
     }
 
     private var nudging: Bool {
-        ask.needsNudge(asOf: now)
+        memory.needsNudge(asOf: now)
     }
 
     var body: some View {
         HStack(spacing: 18) {
-            Image(systemName: ask.glyph)
+            Image(systemName: memory.glyph)
                 .font(.system(size: 22, weight: .semibold))
                 .foregroundStyle(.white)
                 .frame(width: 28)
                 .shadow(color: .black.opacity(0.18), radius: 1, y: 1)
 
-            Text(ask.title)
+            Text(memory.title)
                 .font(.system(size: 22, weight: .bold))
                 .foregroundStyle(.white)
                 .lineLimit(1)
@@ -54,7 +54,7 @@ struct AskBandRow: View {
         .padding(.horizontal, 26)
         .frame(maxWidth: .infinity, minHeight: Tuning.bandMinHeight, alignment: .leading)
         .background {
-            AskPalette.gradient(effort: ask.effort, daysRemaining: daysRemaining)
+            ShortTermPalette.gradient(effort: memory.effort, daysRemaining: daysRemaining)
                 // subtle darkening on the leading edge for depth, like the mock
                 .overlay(
                     LinearGradient(

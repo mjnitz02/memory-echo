@@ -1,12 +1,10 @@
 //
-//  Ask.swift
+//  ShortTermMemory.swift
 //  MemoryEchoCore
 //
-//  A one-off "ask" — the thing working memory drops. Deliberately tiny.
-//  NOTE: named `Ask`, not `Task` — `Task` collides with Swift concurrency,
-//  and "ask" is our domain word anyway.
+//  A short-term memory — the thing working memory holds right now.
 //
-//  Glyph + color are DERIVED from this data (see AskGlyph / AskPalette),
+//  Glyph + color are DERIVED from this data (see MemoryGlyph / ShortTermPalette),
 //  never stored, so re-tuning the matcher/palette never needs a migration.
 //
 
@@ -14,9 +12,9 @@ import Foundation
 import SwiftData
 
 @Model
-public final class Ask {
+public final class ShortTermMemory {
     /// Stable identity, safe across the app↔widget process boundary and used as
-    /// the merge key for JSON backup import. Mirrors Intention / LongTermMemory.
+    /// the merge key for JSON backup import. Mirrors Echo / LongTermMemory.
     /// Every stored property below carries a default so the model stays
     /// CloudKit-compatible (a future SwiftData+CloudKit flip needs every
     /// attribute optional or defaulted) — the inits still set real values.
@@ -26,7 +24,7 @@ public final class Ask {
 
     /// Stored Horizon (raw). Use the `horizon` computed property to read it.
     public var horizonRaw: String = Horizon.today.rawValue
-    /// When the horizon was last (re)set — drives the Phase 3 shrink.
+    /// When the horizon was last (re)set — drives the shrink.
     public var horizonSetAt: Date = Date.now
     /// Stored Effort (raw). Use the `effort` computed property to read it.
     public var effortRaw: String = Effort.quick.rawValue
@@ -83,32 +81,30 @@ public final class Ask {
 
     // MARK: Derived presentation
 
-    /// SF Symbol for this ask's title: the on-device model's cached pick once
+    /// SF Symbol for this memory's title: the on-device model's cached pick once
     /// resolved, otherwise the fast offline matcher (see GlyphResolver).
     public var glyph: String {
-        cachedGlyph ?? AskGlyph.symbol(for: title)
+        cachedGlyph ?? MemoryGlyph.symbol(for: title)
     }
 
-    // MARK: Derived staleness (the Phase 3 shrink engine, evaluated `asOf` a
+    // MARK: Derived staleness
 
-    // given instant so SwiftUI can refresh it on scene-activation / day change).
-
-    /// Buffer remaining for this ask. Negative = overdue.
+    /// Buffer remaining for this memory. Negative = overdue.
     public func daysRemaining(asOf now: Date = .now) -> Int {
         Scheduling.daysRemaining(buffer: horizon.bufferDays, setAt: horizonSetAt, now: now)
     }
 
-    /// Where this ask currently sits on the 4-way staleness color axis.
+    /// Where this memory currently sits on the 4-way staleness color axis.
     public func colorStop(asOf now: Date = .now) -> ColorStop {
         Scheduling.colorStop(daysRemaining: daysRemaining(asOf: now))
     }
 
-    /// The 3-way horizon the ask has drifted to (overdue collapses into today).
+    /// The 3-way horizon the memory has drifted to (overdue collapses into today).
     public func effectiveHorizon(asOf now: Date = .now) -> Horizon {
         Scheduling.effectiveHorizon(daysRemaining: daysRemaining(asOf: now))
     }
 
-    /// Whether this ask has been ignored long enough to earn the nudge.
+    /// Whether this memory has been ignored long enough to earn the nudge.
     public func needsNudge(asOf now: Date = .now) -> Bool {
         Scheduling.needsNudge(daysRemaining: daysRemaining(asOf: now), isOpen: isOpen)
     }

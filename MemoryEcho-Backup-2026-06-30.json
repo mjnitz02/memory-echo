@@ -1,0 +1,89 @@
+{
+  "echoes" : [
+    {
+      "id" : "96517CA7-AB32-42EB-942E-8228E058E076",
+      "intervalHours" : 12,
+      "lastDismissedAt" : "2026-06-30T17:03:53Z",
+      "sortIndex" : 1,
+      "text" : "Reflect"
+    },
+    {
+      "id" : "95BABB15-BDC1-4D38-9B5C-311AE3960B52",
+      "intervalHours" : 6,
+      "lastDismissedAt" : "2026-06-30T17:04:15Z",
+      "sortIndex" : 0,
+      "text" : "Breathe"
+    },
+    {
+      "id" : "C7EE2878-B99C-4F73-A347-32816ED5B1DC",
+      "intervalHours" : 3,
+      "lastDismissedAt" : "2026-06-30T17:03:54Z",
+      "sortIndex" : 2,
+      "text" : "Listen"
+    }
+  ],
+  "exportedAt" : "2026-06-30T18:59:54Z",
+  "longTermMemories" : [
+    {
+      "createdAt" : "2026-06-29T16:15:06Z",
+      "id" : "B5AAB991-CB6E-4CE4-AAA6-D6781AA6BDF7",
+      "isHighPriority" : false,
+      "text" : "Seal the bathroom floor"
+    },
+    {
+      "createdAt" : "2026-06-29T16:14:56Z",
+      "id" : "CBFC573A-F65E-41EC-933D-25D97640DF1D",
+      "isHighPriority" : false,
+      "text" : "Repaint the shower"
+    },
+    {
+      "createdAt" : "2026-06-29T16:14:36Z",
+      "id" : "7243355A-A5CE-407E-B23F-D5669830EC83",
+      "isHighPriority" : false,
+      "text" : "Fix fence water flow"
+    }
+  ],
+  "shortTermMemories" : [
+    {
+      "createdAt" : "2026-06-29T18:57:48Z",
+      "effortRaw" : "long",
+      "horizonRaw" : "tomorrow",
+      "horizonSetAt" : "2026-06-29T18:57:48Z",
+      "id" : "4B9D0087-A380-4316-B3DB-F9C568535DBE",
+      "title" : "Submit copays"
+    },
+    {
+      "createdAt" : "2026-06-29T14:27:57Z",
+      "effortRaw" : "long",
+      "horizonRaw" : "laterThisWeek",
+      "horizonSetAt" : "2026-06-29T14:27:57Z",
+      "id" : "3392BAF9-AD73-4826-BBC9-4E7CEAD139F5",
+      "title" : "Imagination with Hallie"
+    },
+    {
+      "createdAt" : "2026-06-29T19:54:49Z",
+      "effortRaw" : "long",
+      "horizonRaw" : "laterThisWeek",
+      "horizonSetAt" : "2026-06-29T19:54:49Z",
+      "id" : "9F70AC3E-6E6C-4CC8-81B5-E0DC8FBD7BFE",
+      "title" : "Help Hallie with bike"
+    },
+    {
+      "createdAt" : "2026-06-30T00:51:17Z",
+      "effortRaw" : "quick",
+      "horizonRaw" : "tomorrow",
+      "horizonSetAt" : "2026-06-30T00:51:17Z",
+      "id" : "65C00989-B396-4C01-9BB4-FA18032D499F",
+      "title" : "Floss"
+    },
+    {
+      "createdAt" : "2026-06-30T15:50:02Z",
+      "effortRaw" : "quick",
+      "horizonRaw" : "today",
+      "horizonSetAt" : "2026-06-30T15:50:02Z",
+      "id" : "B9F7E502-7A88-44F3-948A-520065478811",
+      "title" : "Dinner snacks"
+    }
+  ],
+  "version" : 2
+}

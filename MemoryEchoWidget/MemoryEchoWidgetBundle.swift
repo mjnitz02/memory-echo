@@ -11,8 +11,8 @@ import WidgetKit
 @main
 struct MemoryEchoWidgetBundle: WidgetBundle {
     var body: some Widget {
-        TasksWidget()
-        IntentionsWidget()
+        MemoriesWidget()
+        EchoesWidget()
         OverviewWidget()
     }
 }

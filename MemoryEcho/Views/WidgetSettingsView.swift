@@ -3,7 +3,7 @@
 //  MemoryEcho
 //
 //  The third (and last) settings screen: a few coarse, accessibility-minded
-//  knobs for the home-screen widgets — how many tasks / intentions they list,
+//  knobs for the home-screen widgets — how many memories / echoes they list,
 //  and how see-through the black background is over the wallpaper. Deliberately
 //  blunt; these are dials to experiment with, not precise controls.
 //
@@ -32,14 +32,14 @@ struct WidgetSettingsView: View {
             }
 
             Section {
-                Stepper(value: $settings.maxIntentions, in: Tuning.widgetIntentionCountRange) {
-                    rowLabel("Intentions shown", "\(settings.maxIntentions)")
+                Stepper(value: $settings.maxEchoes, in: Tuning.widgetEchoCountRange) {
+                    rowLabel("Echoes shown", "\(settings.maxEchoes)")
                 }
                 .listRowBackground(Color.white.opacity(0.06))
             } header: {
-                header("Intentions")
+                header("Echoes")
             } footer: {
-                footer("How many intentions the Intentions and Overview widgets list.")
+                footer("How many echoes the Echoes and Overview widgets list.")
             }
 
             Section {
