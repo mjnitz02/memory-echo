@@ -14,7 +14,7 @@ UI_TARGET      := MemoryEchoUITests
 
 # Simulator destination. Override on the CLI or in CI if the runner has a
 # different device, e.g. `make test-unit SIMULATOR_NAME="iPhone 16"`.
-SIMULATOR_NAME ?= iPhone 17
+SIMULATOR_NAME ?= iPhone 16
 SIMULATOR_OS   ?= latest
 # arch=arm64 pins the native slice (Mac + GitHub runners are Apple Silicon) so
 # xcodebuild doesn't warn about matching both the arm64 and x86_64/Rosetta slice
