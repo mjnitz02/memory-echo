@@ -14,12 +14,11 @@ UI_TARGET      := MemoryEchoUITests
 
 # Simulator destination. Override on the CLI or in CI if the runner has a
 # different device, e.g. `make test-unit SIMULATOR_NAME="iPhone 16"`.
-SIMULATOR_NAME ?= iPhone 16
-SIMULATOR_OS   ?= latest
+SIMULATOR_NAME ?= iPhone 17
 # arch=arm64 pins the native slice (Mac + GitHub runners are Apple Silicon) so
 # xcodebuild doesn't warn about matching both the arm64 and x86_64/Rosetta slice
 # of the same simulator.
-DESTINATION    ?= platform=iOS Simulator,name=$(SIMULATOR_NAME),OS=$(SIMULATOR_OS),arch=arm64
+DESTINATION    ?= platform=iOS Simulator,name=$(SIMULATOR_NAME),arch=arm64
 
 # On-device deploy (free Apple ID). Apps signed by a free Personal Team stop
 # launching after 7 days, so re-run `make deploy` weekly with the phone plugged
