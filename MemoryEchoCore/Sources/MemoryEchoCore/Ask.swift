@@ -15,15 +15,21 @@ import SwiftData
 
 @Model
 public final class Ask {
-    public var title: String
-    public var createdAt: Date
+    /// Stable identity, safe across the app↔widget process boundary and used as
+    /// the merge key for JSON backup import. Mirrors Intention / LongTermMemory.
+    /// Every stored property below carries a default so the model stays
+    /// CloudKit-compatible (a future SwiftData+CloudKit flip needs every
+    /// attribute optional or defaulted) — the inits still set real values.
+    public var id: UUID = UUID()
+    public var title: String = ""
+    public var createdAt: Date = Date.now
 
     /// Stored Horizon (raw). Use the `horizon` computed property to read it.
-    public var horizonRaw: String
+    public var horizonRaw: String = Horizon.today.rawValue
     /// When the horizon was last (re)set — drives the Phase 3 shrink.
-    public var horizonSetAt: Date
+    public var horizonSetAt: Date = Date.now
     /// Stored Effort (raw). Use the `effort` computed property to read it.
-    public var effortRaw: String
+    public var effortRaw: String = Effort.quick.rawValue
 
     /// nil = open. One swipe sets this and the row vanishes (no separate delete).
     public var completedAt: Date?
@@ -41,6 +47,7 @@ public final class Ask {
         horizon: Horizon = .today,
         createdAt: Date = .now
     ) {
+        id = UUID()
         self.title = title
         effortRaw = effort.rawValue
         horizonRaw = horizon.rawValue

@@ -138,8 +138,11 @@ struct LongTermView: View {
         WidgetCenter.shared.reloadAllTimelines()
     }
 
+    /// One swipe clears a memory for good. There's no undo toast here (unlike
+    /// Today), so it's a straight delete rather than a soft-complete that would
+    /// otherwise linger in the store forever.
     private func complete(_ memory: LongTermMemory) {
-        withAnimation(.easeOut(duration: 0.25)) { memory.completedAt = .now }
+        withAnimation(.easeOut(duration: 0.25)) { context.delete(memory) }
         try? context.save()
         WidgetCenter.shared.reloadAllTimelines()
     }

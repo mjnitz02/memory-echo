@@ -21,13 +21,16 @@ public final class Intention {
     /// (e.g. the widget's dismiss App Intent re-fetches by this). Object
     /// pointers / PersistentIdentifiers aren't stable across processes.
     public var id: UUID = UUID()
-    public var text: String
+    /// Every stored property carries a default so the model stays
+    /// CloudKit-compatible (a future SwiftData+CloudKit flip needs every
+    /// attribute optional or defaulted) — the init still sets real values.
+    public var text: String = ""
     /// 6 / 12 / 24 / 48 — how often it echoes back.
-    public var intervalHours: Int
+    public var intervalHours: Int = Tuning.defaultIntentionIntervalHours
     /// nil = currently showing. Set to now on dismissal.
     public var lastDismissedAt: Date?
     /// Stable ordering for the chip row.
-    public var sortIndex: Int
+    public var sortIndex: Int = 0
 
     public init(
         text: String,

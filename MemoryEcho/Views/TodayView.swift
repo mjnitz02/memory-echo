@@ -371,12 +371,18 @@ struct TodayView: View {
     }
 
     /// Hide the toast after the undo window, unless a new completion or an undo
-    /// has already replaced/cancelled it.
+    /// has already replaced/cancelled it. Once the window passes the completion
+    /// is final, so the ask is hard-deleted rather than left soft-completed in
+    /// the store forever (a launch sweep catches any orphaned by an app kill).
     private func scheduleUndoDismissal() {
         undoDismissTask?.cancel()
         undoDismissTask = Task {
             try? await Task.sleep(for: .seconds(Tuning.undoWindowSeconds))
             guard !Task.isCancelled else { return }
+            if let ask = recentlyCompleted {
+                context.delete(ask)
+                persistAndRefreshWidgets()
+            }
             withAnimation { recentlyCompleted = nil }
         }
     }
