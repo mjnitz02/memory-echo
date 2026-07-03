@@ -152,6 +152,9 @@ struct LongTermView: View {
 /// these are placeholders to glance at, not things on fire.
 struct LongTermBandRow: View {
     let memory: LongTermMemory
+    /// When provided, the text renders as an inline editable field instead of
+    /// static text, so the band itself is the capture surface.
+    var textEditing: TextEditing?
 
     var body: some View {
         HStack(spacing: 16) {
@@ -162,11 +165,7 @@ struct LongTermBandRow: View {
                     .frame(width: 14)
                     .shadow(color: .black.opacity(0.2), radius: 1, y: 1)
             }
-            Text(memory.text)
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(.white)
-                .lineLimit(2)
-                .shadow(color: .black.opacity(0.16), radius: 2, y: 1)
+            text
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 26)
@@ -181,5 +180,38 @@ struct LongTermBandRow: View {
                     )
                 )
         }
+    }
+
+    /// Inline-editable text (capture mode) or static text (list mode), styled
+    /// identically so the preview matches the real row exactly.
+    @ViewBuilder
+    private var text: some View {
+        if let textEditing {
+            TextField(textEditing.placeholder, text: textEditing.text, axis: .vertical)
+                .focused(textEditing.focus)
+                .submitLabel(.done)
+                .onSubmit { textEditing.onSubmit() }
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(.white)
+                .tint(.white)
+                .lineLimit(2)
+                .shadow(color: .black.opacity(0.16), radius: 2, y: 1)
+        } else {
+            Text(memory.text)
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(.white)
+                .lineLimit(2)
+                .shadow(color: .black.opacity(0.16), radius: 2, y: 1)
+        }
+    }
+}
+
+extension LongTermBandRow {
+    /// Bundles everything the band needs to host the capture field inline.
+    struct TextEditing {
+        var text: Binding<String>
+        var focus: FocusState<Bool>.Binding
+        var placeholder: String
+        var onSubmit: () -> Void
     }
 }

@@ -43,12 +43,6 @@ struct AddLongTermSheet: View {
             VStack(alignment: .leading, spacing: 28) {
                 preview
 
-                TextField("What do you keep forgetting?", text: $text, axis: .vertical)
-                    .font(.system(size: 24, weight: .semibold))
-                    .focused($fieldFocused)
-                    .submitLabel(.done)
-                    .onSubmit(add)
-
                 Toggle(isOn: $highPriority) {
                     Text("High priority")
                         .font(.system(size: 16, weight: .semibold))
@@ -77,17 +71,18 @@ struct AddLongTermSheet: View {
     }
 
     private var preview: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("PREVIEW")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.4))
-                .tracking(1.5)
-
-            LongTermBandRow(memory: previewMemory)
-                .opacity(trimmed.isEmpty ? 0.5 : 1)
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                .animation(.easeInOut(duration: 0.25), value: highPriority)
-        }
+        LongTermBandRow(
+            memory: previewMemory,
+            textEditing: .init(
+                text: $text,
+                focus: $fieldFocused,
+                placeholder: "What do you keep forgetting?",
+                onSubmit: add
+            )
+        )
+        .opacity(trimmed.isEmpty ? 0.6 : 1)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .animation(.easeInOut(duration: 0.25), value: highPriority)
     }
 
     private func add() {
