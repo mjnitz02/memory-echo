@@ -24,7 +24,6 @@ import AppIntents
 import MemoryEchoCore
 import SwiftData
 import SwiftUI
-import WidgetKit
 
 struct QuickCaptureIntent: AppIntent {
     static let title: LocalizedStringResource = "Quick Capture to MemoryEcho"
@@ -55,10 +54,7 @@ struct QuickCaptureIntent: AppIntent {
         let context = ModelContext(MemoryEchoStore.container())
         let memory = ShortTermMemory(title: parsed.title, effort: parsed.effort, horizon: parsed.horizon)
         context.insert(memory)
-        // Save before the widget reload so its fresh read sees the new memory;
-        // SwiftData's autosave is too lazy to beat the reload (see TodayView).
-        try context.save()
-        WidgetCenter.shared.reloadAllTimelines()
+        try context.saveAndRefreshWidgets()
 
         return .result(
             dialog: "Saved \"\(parsed.title)\".",

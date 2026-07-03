@@ -18,18 +18,21 @@ hands them back at the right moment, and then **gets out of the way**.
 ## What it is
 
 Work tasks are already handled elsewhere (JIRA, calendars). MemoryEcho targets the
-*other* stuff — the fuzzy, interpersonal, easy-to-forget requests — with two content
-types:
+*other* stuff — the fuzzy, interpersonal, easy-to-forget requests — with three content
+types across two screens:
 
-- **Asks** — one-off requests. Captured fast, surfaced by staleness, cleared with a
-  single swipe.
-- **Intentions** — a few persistent habit sparks ("Listen", "Hug your family") that
-  *echo back* on an interval instead of nagging constantly.
+- **Working Memory** (the default screen): one-off requests, captured fast, surfaced
+  by staleness, cleared with a single swipe.
+- **Echoes** — a few persistent habit sparks ("Listen", "Hug your family") that
+  *echo back* on an interval instead of nagging constantly. Live in a settings
+  sub-screen, surfaced via the home-screen widget.
+- **Long Term Memory** — a second top-level screen (swipe the header from Working
+  Memory) for low-interaction parking-lot items you keep forgetting, with a gentle
+  red nudge if it goes unopened for too long.
 
-The default screen is **Today**: a dark, full-bleed, icon-driven list ordered by a
-derived priority (staleness + a gentle time-of-day effort boost). Capture is the
-first-class surface — Action Button and a home-screen widget both jump straight to a
-minimal add screen.
+Working Memory is a dark, full-bleed, icon-driven list ordered by a derived priority
+(staleness + a gentle time-of-day effort boost). Capture is the first-class surface —
+Action Button and a home-screen widget both jump straight to a minimal add screen.
 
 ## Design guardrails (non-negotiable)
 
@@ -57,15 +60,16 @@ minimal add screen.
                            ▼
             ┌──────────────────────────────┐
             │  MemoryEchoCore (local SPM)  │  ← models + logic, shared by both
-            │  Ask, Intention, store,      │
+            │  ShortTermMemory, Echo,      │
+            │  LongTermMemory, store,      │
             │  shrink/priority, icon match │
             └──────────────────────────────┘
 ```
 
 - **SwiftUI + SwiftData**, deployment target **iOS 26.5**.
-- **`MemoryEchoCore`** — a local Swift package holding the models (`Ask`,
-  `Intention`) and all pure logic, so the app and the widget share one source of
-  truth.
+- **`MemoryEchoCore`** — a local Swift package holding the models
+  (`ShortTermMemory`, `Echo`, `LongTermMemory`) and all pure logic, so the app and
+  the widget share one source of truth.
 - **App Group** lets the widget read the same SwiftData store as the app.
 - **Apple Silicon only** — no Intel/Rosetta support is provided or planned.
 

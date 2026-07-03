@@ -12,7 +12,6 @@
 import MemoryEchoCore
 import SwiftData
 import SwiftUI
-import WidgetKit
 
 struct AddLongTermSheet: View {
     @Environment(\.dismiss) private var dismiss
@@ -94,10 +93,9 @@ struct AddLongTermSheet: View {
     private func add() {
         guard canAdd else { return }
         context.insert(LongTermMemory(text: trimmed, isHighPriority: highPriority))
-        try? context.save()
         // Adding counts as engaging, so the review echo doesn't fire immediately.
         LongTermConfig.markOpened()
-        WidgetCenter.shared.reloadAllTimelines()
+        try? context.saveAndRefreshWidgets()
         dismiss()
     }
 }

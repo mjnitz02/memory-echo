@@ -11,12 +11,13 @@
 //  @Model objects). The loader reads the SAME App-Group SwiftData store as the
 //  app, so a dismiss from the widget is just a write the app reads back.
 //
+//  The dismiss intents and the shared row/chip views live in WidgetChips.swift
+//  (split out purely to stay under the file-length lint threshold).
+//
 
-import AppIntents
+import Foundation
 import MemoryEchoCore
 import SwiftData
-import SwiftUI
-import WidgetKit
 
 // MARK: - Snapshots
 
@@ -70,6 +71,26 @@ struct EchoSnapshot: Identifiable {
     }
 }
 
+struct ActionEchoSnapshot: Identifiable {
+    /// The model's stable UUID (as a string) — handed to the dismiss intent so
+    /// it can re-fetch this exact action echo from the widget process.
+    let id: String
+    let text: String
+    let glyph: String
+
+    init(actionEcho: ActionEcho) {
+        id = actionEcho.id.uuidString
+        text = actionEcho.text
+        glyph = actionEcho.glyph
+    }
+
+    init(id: String, text: String, glyph: String) {
+        self.id = id
+        self.text = text
+        self.glyph = glyph
+    }
+}
+
 // MARK: - Reading the shared store
 
 enum WidgetStore {
@@ -99,19 +120,36 @@ enum WidgetStore {
         showingEchoes(nonEmptyEchoes(), asOf: now, limit: limit)
     }
 
+    /// Action echoes currently active (inside their daily grace window and not
+    /// yet dismissed this cycle). While any are active they take over the
+    /// echoes surface entirely — see the precedence in EchoesWidget/OverviewWidget.
+    static func activeActionEchoSnapshots(now: Date) -> [ActionEchoSnapshot] {
+        activeActionEchoSnapshots(nonEmptyActionEchoes(), graceMinutes: ActionEchoConfig.load().graceMinutes, asOf: now)
+    }
+
     /// Timeline slices for the echoes strip: the showing set as of `now`, plus
-    /// one slice at each future moment a hidden echo resurfaces. A hidden echo
-    /// has exactly one return transition (then it stays put until tapped, which
-    /// already pushes a reload), so these slices capture every change with no
-    /// polling — the widget flips each echo on at the precise second instead of
-    /// catching up on the next hourly tick. Always returns at least the `now`
+    /// one slice at each future moment a hidden echo resurfaces, an action echo
+    /// arms, or an active action echo's grace window quietly elapses. A hidden
+    /// echo has exactly one return transition (then it stays put until tapped,
+    /// which already pushes a reload), so these slices capture every change with
+    /// no polling — the widget flips each echo on at the precise second instead
+    /// of catching up on the next hourly tick. Always returns at least the `now`
     /// slice.
     static func echoSlices(now: Date, limit: Int) -> [EchoSlice] {
         let echoes = nonEmptyEchoes()
-        return transitionInstants(echoes: echoes, now: now, includeMidnights: false, includeEffortFlips: false)
-            .map { moment in
-                EchoSlice(date: moment, echoes: showingEchoes(echoes, asOf: moment, limit: limit))
-            }
+        let actionEchoes = nonEmptyActionEchoes()
+        let graceMinutes = ActionEchoConfig.load().graceMinutes
+        return transitionInstants(
+            echoes: echoes, now: now, includeMidnights: false, includeEffortFlips: false,
+            actionEchoes: actionEchoes, graceMinutes: graceMinutes
+        )
+        .map { moment in
+            EchoSlice(
+                date: moment,
+                echoes: showingEchoes(echoes, asOf: moment, limit: limit),
+                actionEchoes: activeActionEchoSnapshots(actionEchoes, graceMinutes: graceMinutes, asOf: moment)
+            )
+        }
     }
 
     /// One Memories-widget entry's ranked memories as they stand at a transition
@@ -135,10 +173,13 @@ enum WidgetStore {
     }
 
     /// One Echoes-strip entry's content as it stands at a given transition
-    /// instant (the showing set at that moment).
+    /// instant (the showing set at that moment). `actionEchoes` takes
+    /// precedence over `echoes` whenever it's non-empty — see the render-time
+    /// swap in EchoesWidgetEntryView.
     struct EchoSlice {
         let date: Date
         let echoes: [EchoSnapshot]
+        let actionEchoes: [ActionEchoSnapshot]
     }
 
     /// One Overview entry's content as it stands at a given transition instant.
@@ -146,36 +187,47 @@ enum WidgetStore {
         let date: Date
         let memories: [ShortTermMemorySnapshot]
         let echoes: [EchoSnapshot]
+        let actionEchoes: [ActionEchoSnapshot]
     }
 
     /// Timeline slices for the Overview widget, which shows both content types,
-    /// so it transitions at the union of (a) each pending echo return and (b)
-    /// each midnight (when memory staleness colors/order advance). Each slice
-    /// carries the memories and echoes as they stand at that instant.
+    /// so it transitions at the union of (a) each pending echo return, (b) each
+    /// midnight (when memory staleness colors/order advance), and (c) each
+    /// action-echo arm/grace-elapse. Each slice carries the memories, echoes,
+    /// and action echoes as they stand at that instant.
     static func overviewSlices(now: Date, memoryLimit: Int, echoLimit: Int) -> [OverviewSlice] {
         let memories = openMemories()
         let echoes = nonEmptyEchoes()
-        return transitionInstants(echoes: echoes, now: now, includeMidnights: true, includeEffortFlips: true)
-            .map { moment in
-                OverviewSlice(
-                    date: moment,
-                    memories: rankedMemories(memories, now: moment, limit: memoryLimit),
-                    echoes: showingEchoes(echoes, asOf: moment, limit: echoLimit)
-                )
-            }
+        let actionEchoes = nonEmptyActionEchoes()
+        let graceMinutes = ActionEchoConfig.load().graceMinutes
+        return transitionInstants(
+            echoes: echoes, now: now, includeMidnights: true, includeEffortFlips: true,
+            actionEchoes: actionEchoes, graceMinutes: graceMinutes
+        )
+        .map { moment in
+            OverviewSlice(
+                date: moment,
+                memories: rankedMemories(memories, now: moment, limit: memoryLimit),
+                echoes: showingEchoes(echoes, asOf: moment, limit: echoLimit),
+                actionEchoes: activeActionEchoSnapshots(actionEchoes, graceMinutes: graceMinutes, asOf: moment)
+            )
+        }
     }
 
     // MARK: Shared internals
 
     /// The sorted, de-duped instants at which a widget's content changes inside
     /// the look-ahead window: always `now`, each still-pending echo return, (for
-    /// content that ages by the day) each midnight, and (for the memory order)
-    /// each hour the effort profile flips its preference.
+    /// content that ages by the day) each midnight, (for the memory order) each
+    /// hour the effort profile flips its preference, and each action echo's
+    /// arm/grace-elapse instants.
     private static func transitionInstants(
         echoes: [Echo],
         now: Date,
         includeMidnights: Bool,
-        includeEffortFlips: Bool
+        includeEffortFlips: Bool,
+        actionEchoes: [ActionEcho] = [],
+        graceMinutes: Int = Tuning.defaultActionEchoGraceMinutes
     ) -> [Date] {
         let windowEnd = now.addingTimeInterval(WidgetRefresh.lookAheadHours * 3600)
         var moments: Set<Date> = [now]
@@ -194,6 +246,24 @@ enum WidgetStore {
         if includeEffortFlips {
             moments.formUnion(WidgetRefresh.effortFlipInstants(now: now, windowEnd: windowEnd))
         }
+        for echo in actionEchoes {
+            // The current (or most recent) cycle's grace-end, if it hasn't
+            // already passed — covers an active action echo quietly going
+            // inactive with no tap.
+            let recentAnchor = Scheduling.mostRecentActionEchoAnchor(anchorMinutes: echo.anchorMinutes, now: now)
+            let recentGraceEnd = recentAnchor.addingTimeInterval(Double(graceMinutes) * 60)
+            if recentGraceEnd > now, recentGraceEnd <= windowEnd {
+                moments.insert(recentGraceEnd)
+            }
+            // Every future arm within the window, plus that cycle's grace-end.
+            var arm = echo.nextArm(asOf: now)
+            while arm <= windowEnd {
+                moments.insert(arm)
+                let graceEnd = arm.addingTimeInterval(Double(graceMinutes) * 60)
+                if graceEnd <= windowEnd { moments.insert(graceEnd) }
+                arm = Scheduling.nextActionEchoAnchor(anchorMinutes: echo.anchorMinutes, now: arm)
+            }
+        }
         return moments.sorted()
     }
 
@@ -210,31 +280,24 @@ enum WidgetStore {
         return echoes.filter { !$0.text.trimmingCharacters(in: .whitespaces).isEmpty }
     }
 
-    /// Same order the app's Today list uses: staleness is the spine, with the
-    /// current hour's preferred effort giving a matching memory a gentle tie-break
-    /// boost (Scheduling.todaySortValue). Reading the profile here — and ranking
-    /// per `now` — is what lets the widget agree with the app at every instant,
-    /// including across an hour where the preference flips Quick↔Long.
+    private static func nonEmptyActionEchoes() -> [ActionEcho] {
+        let context = ModelContext(MemoryEchoStore.container())
+        let descriptor = FetchDescriptor<ActionEcho>(sortBy: [SortDescriptor(\.sortIndex)])
+        let actionEchoes = (try? context.fetch(descriptor)) ?? []
+        return actionEchoes.filter { !$0.text.trimmingCharacters(in: .whitespaces).isEmpty }
+    }
+
+    /// Same order the app's Today list uses (Scheduling.rankMemories) — sharing
+    /// the one comparator is what lets the widget agree with the app at every
+    /// instant, including across an hour where the time-of-day preference flips
+    /// Quick↔Long.
     private static func rankedMemories(
         _ memories: [ShortTermMemory],
         now: Date,
         limit: Int
     ) -> [ShortTermMemorySnapshot] {
         let preferred = EffortProfile.load().preferredEffort(asOf: now)
-        return memories
-            .sorted { a, b in
-                let va = Scheduling.todaySortValue(
-                    daysRemaining: a.daysRemaining(asOf: now),
-                    effort: a.effort,
-                    preferredEffort: preferred
-                )
-                let vb = Scheduling.todaySortValue(
-                    daysRemaining: b.daysRemaining(asOf: now),
-                    effort: b.effort,
-                    preferredEffort: preferred
-                )
-                return va != vb ? va < vb : a.createdAt < b.createdAt
-            }
+        return Scheduling.rankMemories(memories, asOf: now, preferredEffort: preferred)
             .prefix(limit)
             .map { ShortTermMemorySnapshot(memory: $0, now: now) }
     }
@@ -244,6 +307,13 @@ enum WidgetStore {
             .filter { $0.isShowing(asOf: asOf) }
             .prefix(limit)
             .map { EchoSnapshot(echo: $0) }
+    }
+
+    private static func activeActionEchoSnapshots(
+        _ actionEchoes: [ActionEcho], graceMinutes: Int, asOf now: Date
+    ) -> [ActionEchoSnapshot] {
+        Scheduling.activeActionEchoes(actionEchoes, graceMinutes: graceMinutes, now: now)
+            .map { ActionEchoSnapshot(actionEcho: $0) }
     }
 }
 
@@ -270,111 +340,5 @@ enum WidgetRefresh {
     /// flips, so this is empty and adds no timeline entries.
     static func effortFlipInstants(now: Date, windowEnd: Date) -> [Date] {
         Scheduling.effortFlipInstants(profile: EffortProfile.load(), now: now, windowEnd: windowEnd)
-    }
-}
-
-// MARK: - Dismiss intent (interactive widget button)
-
-/// Tapping an echo chip runs this in the widget process: it flips the echo's
-/// `lastDismissedAt` in the shared store, so it hides here AND in the app until
-/// its interval re-elapses. `openAppWhenRun` stays false — the whole point is
-/// to dismiss in place without leaving the home screen.
-struct DismissEchoIntent: AppIntent {
-    static let title: LocalizedStringResource = "Dismiss Echo"
-
-    @Parameter(title: "Echo ID")
-    var echoID: String
-
-    init() {}
-
-    init(echoID: String) {
-        self.echoID = echoID
-    }
-
-    func perform() async throws -> some IntentResult {
-        if let uuid = UUID(uuidString: echoID) {
-            let context = ModelContext(MemoryEchoStore.container())
-            let descriptor = FetchDescriptor<Echo>(predicate: #Predicate { $0.id == uuid })
-            if let echo = try? context.fetch(descriptor).first {
-                echo.dismiss()
-                try? context.save()
-            }
-        }
-        WidgetCenter.shared.reloadAllTimelines()
-        return .result()
-    }
-}
-
-// MARK: - Shared row views
-
-/// A full-bleed memory band: glyph + title over the effort×staleness gradient.
-/// Non-interactive everywhere — tapping a memory always just opens the app.
-struct ShortTermMemoryRow: View {
-    let memory: ShortTermMemorySnapshot
-    /// When true the band stretches to fill the height it's given, so a column
-    /// of rows divides the widget evenly (fewer memories → taller bands). The
-    /// Memories widget opts in; Overview keeps compact rows.
-    var fillHeight = false
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: memory.glyph)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(.white)
-                .frame(width: 16)
-            Text(memory.title)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(.white)
-                .lineLimit(1)
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 7)
-        .frame(maxWidth: .infinity, maxHeight: fillHeight ? .infinity : nil, alignment: .leading)
-        .background(ShortTermPalette.gradient(effort: memory.effort, daysRemaining: memory.daysRemaining))
-        .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
-    }
-}
-
-/// A tappable echo chip. The whole chip is a Button bound to the dismiss intent,
-/// so a tap quietly retires the echo until its interval comes round.
-struct EchoChip: View {
-    let echo: EchoSnapshot
-    /// When true the chip stretches to fill the height it's given, so a row of
-    /// chips fills the widget. The Echoes widget (horizontal) opts in; Overview
-    /// keeps content-height chips in its vertical stack.
-    var fillHeight = false
-
-    var body: some View {
-        Button(intent: DismissEchoIntent(echoID: echo.id)) {
-            HStack(spacing: 6) {
-                Image(systemName: "sparkle")
-                    .font(.system(size: 11, weight: .semibold))
-                Text(echo.text)
-                    .font(.system(size: 14, weight: .semibold))
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.7)
-                    .multilineTextAlignment(.center)
-            }
-            .foregroundStyle(.white.opacity(0.85))
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .frame(maxWidth: .infinity, maxHeight: fillHeight ? .infinity : nil)
-            .background(Capsule().fill(.white.opacity(0.10)))
-            .overlay(Capsule().strokeBorder(.white.opacity(0.12)))
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-/// A quiet empty-state line, centered.
-struct WidgetEmptyState: View {
-    let text: String
-
-    var body: some View {
-        Text(text)
-            .font(.system(size: 14, weight: .medium))
-            .foregroundStyle(.white.opacity(0.5))
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
 }

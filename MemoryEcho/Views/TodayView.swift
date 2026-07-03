@@ -15,7 +15,6 @@ import Combine
 import MemoryEchoCore
 import SwiftData
 import SwiftUI
-import WidgetKit
 
 struct TodayView: View {
     /// Switch to the Long Term screen (provided by RootView; fired by the header
@@ -36,6 +35,9 @@ struct TodayView: View {
     @Query(sort: \Echo.sortIndex, order: .forward)
     private var echoes: [Echo]
 
+    @Query(sort: \ActionEcho.sortIndex, order: .forward)
+    private var actionEchoes: [ActionEcho]
+
     /// Open long-term memories — only their presence matters here, for deciding
     /// whether the review echo can light (an empty list never nags).
     @Query(filter: #Predicate<LongTermMemory> { $0.completedAt == nil })
@@ -55,6 +57,8 @@ struct TodayView: View {
     @State private var now: Date = .now
     /// The time-of-day effort profile, reloaded when the settings sheet closes.
     @State private var profile = EffortProfile.load()
+    /// The action-echo grace window, reloaded when the settings sheet closes.
+    @State private var actionEchoGraceMinutes = ActionEchoConfig.load().graceMinutes
     /// Bridge from the Action Button / Siri add intent (see AddShortTermMemoryIntent).
     @State private var captureRouter = CaptureRouter.shared
     /// Guards against overlapping glyph-backfill passes (see resolveMissingGlyphs).
@@ -69,27 +73,20 @@ struct TodayView: View {
     /// preference gets a gentle boost (Scheduling.todaySortValue); oldest first
     /// breaks any remaining tie.
     private var orderedMemories: [ShortTermMemory] {
-        let preferred = profile.preferredEffort(asOf: now)
-        return openMemories.sorted { a, b in
-            let va = Scheduling.todaySortValue(
-                daysRemaining: a.daysRemaining(asOf: now),
-                effort: a.effort,
-                preferredEffort: preferred
-            )
-            let vb = Scheduling.todaySortValue(
-                daysRemaining: b.daysRemaining(asOf: now),
-                effort: b.effort,
-                preferredEffort: preferred
-            )
-            if va != vb { return va < vb }
-            return a.createdAt < b.createdAt
-        }
+        Scheduling.rankMemories(openMemories, asOf: now, preferredEffort: profile.preferredEffort(asOf: now))
     }
 
     /// Echoes currently showing — dismissed ones reappear once their interval
     /// elapses. Re-evaluated as `now` advances (minute tick / activation).
     private var showingEchoes: [Echo] {
         echoes.filter { $0.isShowing(asOf: now) }
+    }
+
+    /// Action echoes currently active (inside their daily grace window and not
+    /// yet dismissed this cycle). While any are active they take over the strip
+    /// from the regular echoes entirely — see the precedence in `body`.
+    private var activeActionEchoes: [ActionEcho] {
+        Scheduling.activeActionEchoes(actionEchoes, graceMinutes: actionEchoGraceMinutes, now: now)
     }
 
     var body: some View {
@@ -99,7 +96,9 @@ struct TodayView: View {
             VStack(spacing: 0) {
                 header
 
-                if !showingEchoes.isEmpty {
+                if !activeActionEchoes.isEmpty {
+                    actionEchoRow
+                } else if !showingEchoes.isEmpty {
                     echoRow
                 }
 
@@ -128,13 +127,17 @@ struct TodayView: View {
         }
         .sheet(
             isPresented: $showingSettings,
-            onDismiss: { profile = EffortProfile.load() },
+            onDismiss: {
+                profile = EffortProfile.load()
+                actionEchoGraceMinutes = ActionEchoConfig.load().graceMinutes
+            },
             content: { SettingsView() }
         )
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 now = .now
                 profile = EffortProfile.load()
+                actionEchoGraceMinutes = ActionEchoConfig.load().graceMinutes
             }
         }
         .onReceive(minuteTick) { now = $0 }
@@ -219,6 +222,51 @@ struct TodayView: View {
             .padding(.horizontal, 24)
             .padding(.bottom, 14)
         }
+    }
+
+    // MARK: Action echo chips
+
+    /// The strip while an action echo is active: filled violet bands (vs.
+    /// echoes' calm outlined pills) with a glyph and a stacked-card edge — the
+    /// "this recurs daily" affordance. Tapping dismisses it for today; once
+    /// none are active the regular echo strip returns (see `body`).
+    private var actionEchoRow: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(activeActionEchoes) { echo in
+                    Button {
+                        withAnimation(.easeOut(duration: 0.25)) { echo.dismiss() }
+                        persistAndRefreshWidgets()
+                    } label: {
+                        actionEchoChip(echo)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 14)
+        }
+    }
+
+    private func actionEchoChip(_ echo: ActionEcho) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: echo.glyph)
+                .font(.system(size: 11, weight: .semibold))
+            Text(echo.text)
+                .font(.system(size: 14, weight: .semibold))
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(Capsule().fill(ActionEchoPalette.gradient()))
+        .background(
+            // Stacked-card edge peeking out behind: the "this recurs" affordance.
+            Capsule()
+                .fill(ActionEchoPalette.gradient())
+                .opacity(0.55)
+                .offset(x: 4, y: 4)
+        )
+        .overlay(Capsule().strokeBorder(.white.opacity(0.25)))
     }
 
     // MARK: Band list
@@ -393,12 +441,7 @@ struct TodayView: View {
         withAnimation { recentlyCompleted = nil }
     }
 
-    /// SwiftData autosaves lazily, so an explicit save is what guarantees the
-    /// shared store is current *before* we ask the widgets to re-read it —
-    /// without this, a freshly completed/added memory lingers on the widget until
-    /// its next scheduled timeline.
     private func persistAndRefreshWidgets() {
-        try? context.save()
-        WidgetCenter.shared.reloadAllTimelines()
+        try? context.saveAndRefreshWidgets()
     }
 }

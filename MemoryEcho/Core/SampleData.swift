@@ -27,6 +27,9 @@ enum SampleData {
         for echo in sampleEchoes() {
             context.insert(echo)
         }
+        for actionEcho in sampleActionEchoes() {
+            context.insert(actionEcho)
+        }
         try? context.save()
     }
 
@@ -71,5 +74,11 @@ enum SampleData {
             Echo(text: "Reflect", intervalHours: 12, sortIndex: 1),
             Echo(text: "Reach out", intervalHours: 24, sortIndex: 2)
         ]
+    }
+
+    /// One action echo at the default 8pm anchor, so the strip's takeover
+    /// behavior is visible without having to create one by hand first.
+    private static func sampleActionEchoes() -> [ActionEcho] {
+        [ActionEcho(text: "Start the dishwasher", anchorMinutes: 20 * 60)]
     }
 }

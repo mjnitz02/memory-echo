@@ -13,11 +13,8 @@
 //  "export → edit JSON → reinstall → import" rather than a real migration.
 //
 //  Import is REPLACE-ALL by design: it wipes every ShortTermMemory / Echo /
-//  LongTermMemory and inserts the file's contents. No merge, no rectification.
-//
-//  v1 → v2 key renames: "asks" → "shortTermMemories", "intentions" → "echoes".
-//  The custom init(from:) on MemoryEchoBackup accepts both formats so a v1
-//  file (or a hand-edited copy) can still be imported after the rename.
+//  LongTermMemory / ActionEcho and inserts the file's contents. No merge, no
+//  rectification.
 //
 
 import Foundation
@@ -87,6 +84,33 @@ public struct EchoSnapshot: Codable, Sendable {
     }
 }
 
+/// Flat, Codable mirror of `ActionEcho`'s stored state.
+public struct ActionEchoSnapshot: Codable, Sendable {
+    public var id: UUID
+    public var text: String
+    public var anchorMinutes: Int
+    public var lastDismissedAt: Date?
+    public var cachedGlyph: String?
+    public var sortIndex: Int
+
+    public init(from actionEcho: ActionEcho) {
+        id = actionEcho.id
+        text = actionEcho.text
+        anchorMinutes = actionEcho.anchorMinutes
+        lastDismissedAt = actionEcho.lastDismissedAt
+        cachedGlyph = actionEcho.cachedGlyph
+        sortIndex = actionEcho.sortIndex
+    }
+
+    public func makeModel() -> ActionEcho {
+        let actionEcho = ActionEcho(text: text, anchorMinutes: anchorMinutes, sortIndex: sortIndex)
+        actionEcho.id = id
+        actionEcho.lastDismissedAt = lastDismissedAt
+        actionEcho.cachedGlyph = cachedGlyph
+        return actionEcho
+    }
+}
+
 /// Flat, Codable mirror of `LongTermMemory`'s stored state.
 public struct LongTermMemorySnapshot: Codable, Sendable {
     public var id: UUID
@@ -117,68 +141,30 @@ public struct LongTermMemorySnapshot: Codable, Sendable {
 /// shape change — bump it and branch in `restore` if the schema ever diverges.
 public struct MemoryEchoBackup: Codable, Sendable {
     /// Current on-disk format version. Bump on any breaking shape change.
-    public static let currentVersion = 2
+    /// v2 → v3: added `actionEchoes` (Action Echoes feature).
+    public static let currentVersion = 3
 
     public var version: Int
     public var exportedAt: Date
     public var shortTermMemories: [ShortTermMemorySnapshot]
     public var echoes: [EchoSnapshot]
     public var longTermMemories: [LongTermMemorySnapshot]
+    public var actionEchoes: [ActionEchoSnapshot]
 
     public init(
         version: Int = MemoryEchoBackup.currentVersion,
         exportedAt: Date = .now,
         shortTermMemories: [ShortTermMemorySnapshot],
         echoes: [EchoSnapshot],
-        longTermMemories: [LongTermMemorySnapshot]
+        longTermMemories: [LongTermMemorySnapshot],
+        actionEchoes: [ActionEchoSnapshot] = []
     ) {
         self.version = version
         self.exportedAt = exportedAt
         self.shortTermMemories = shortTermMemories
         self.echoes = echoes
         self.longTermMemories = longTermMemories
-    }
-
-    /// Accept both v1 ("asks"/"intentions") and v2 ("shortTermMemories"/"echoes")
-    /// JSON. Tries the v2 keys first; falls back to v1 so hand-edited files and
-    /// old exports continue to import cleanly.
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        version = try container.decode(Int.self, forKey: .version)
-        exportedAt = try container.decode(Date.self, forKey: .exportedAt)
-        longTermMemories = try container.decodeIfPresent([LongTermMemorySnapshot].self, forKey: .longTermMemories) ?? []
-
-        // v2 key first, fall back to v1.
-        if let stm = try container.decodeIfPresent([ShortTermMemorySnapshot].self, forKey: .shortTermMemories) {
-            shortTermMemories = stm
-        } else if let asks = try container.decodeIfPresent([ShortTermMemorySnapshot].self, forKey: .asks) {
-            shortTermMemories = asks
-        } else {
-            shortTermMemories = []
-        }
-
-        if let echoArr = try container.decodeIfPresent([EchoSnapshot].self, forKey: .echoes) {
-            echoes = echoArr
-        } else if let intentions = try container.decodeIfPresent([EchoSnapshot].self, forKey: .intentions) {
-            echoes = intentions
-        } else {
-            echoes = []
-        }
-    }
-
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(version, forKey: .version)
-        try container.encode(exportedAt, forKey: .exportedAt)
-        try container.encode(shortTermMemories, forKey: .shortTermMemories)
-        try container.encode(echoes, forKey: .echoes)
-        try container.encode(longTermMemories, forKey: .longTermMemories)
-    }
-
-    private enum CodingKeys: String, CodingKey {
-        case version, exportedAt, longTermMemories
-        case shortTermMemories, echoes
-        case asks, intentions
+        self.actionEchoes = actionEchoes
     }
 }
 
@@ -225,10 +211,12 @@ public enum BackupService {
         let memories = try context.fetch(FetchDescriptor<ShortTermMemory>())
         let echoes = try context.fetch(FetchDescriptor<Echo>())
         let longTerm = try context.fetch(FetchDescriptor<LongTermMemory>())
+        let actionEchoes = try context.fetch(FetchDescriptor<ActionEcho>())
         return MemoryEchoBackup(
             shortTermMemories: memories.map(ShortTermMemorySnapshot.init(from:)),
             echoes: echoes.map(EchoSnapshot.init(from:)),
-            longTermMemories: longTerm.map(LongTermMemorySnapshot.init(from:))
+            longTermMemories: longTerm.map(LongTermMemorySnapshot.init(from:)),
+            actionEchoes: actionEchoes.map(ActionEchoSnapshot.init(from:))
         )
     }
 
@@ -251,6 +239,7 @@ public enum BackupService {
         try context.delete(model: ShortTermMemory.self)
         try context.delete(model: Echo.self)
         try context.delete(model: LongTermMemory.self)
+        try context.delete(model: ActionEcho.self)
 
         for snapshot in backup.shortTermMemories {
             context.insert(snapshot.makeModel())
@@ -261,11 +250,11 @@ public enum BackupService {
         for snapshot in backup.longTermMemories {
             context.insert(snapshot.makeModel())
         }
+        for snapshot in backup.actionEchoes {
+            context.insert(snapshot.makeModel())
+        }
 
         try context.save()
-        // A hand-edited file (or one exported from the pre-fix build) can carry
-        // colliding ShortTermMemory ids — heal them so the list renders correctly.
-        try StoreMaintenance.deduplicateShortTermMemoryIDs(in: context)
     }
 
     /// A dated, filesystem-safe default filename for the export sheet.

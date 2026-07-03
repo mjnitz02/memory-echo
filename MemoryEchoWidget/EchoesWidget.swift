@@ -15,6 +15,7 @@ import WidgetKit
 struct EchoesEntry: TimelineEntry {
     let date: Date
     let echoes: [EchoSnapshot]
+    var actionEchoes: [ActionEchoSnapshot] = []
     var backgroundOpacity: Double = Tuning.defaultWidgetBackgroundOpacity
 
     static let placeholder = EchoesEntry(date: .now, echoes: [
@@ -43,6 +44,7 @@ struct EchoesProvider: TimelineProvider {
                 EchoesEntry(
                     date: $0.date,
                     echoes: $0.echoes,
+                    actionEchoes: $0.actionEchoes,
                     backgroundOpacity: settings.backgroundOpacity
                 )
             }
@@ -54,6 +56,7 @@ struct EchoesProvider: TimelineProvider {
         return EchoesEntry(
             date: now,
             echoes: WidgetStore.showingEchoes(now: now, limit: settings.maxEchoes),
+            actionEchoes: WidgetStore.activeActionEchoSnapshots(now: now),
             backgroundOpacity: settings.backgroundOpacity
         )
     }
@@ -64,7 +67,14 @@ struct EchoesWidgetEntryView: View {
 
     var body: some View {
         Group {
-            if entry.echoes.isEmpty {
+            if !entry.actionEchoes.isEmpty {
+                // Active action echoes take over the strip entirely, hiding the
+                // passive echoes — see Scheduling.activeActionEchoes.
+                HStack(spacing: 8) {
+                    ForEach(entry.actionEchoes) { ActionEchoChip(echo: $0, fillHeight: true) }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if entry.echoes.isEmpty {
                 WidgetEmptyState(text: "No echoes right now")
             } else {
                 // Echoes ride side by side, dividing the strip's width among the

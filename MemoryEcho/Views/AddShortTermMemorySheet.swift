@@ -14,7 +14,6 @@
 import MemoryEchoCore
 import SwiftData
 import SwiftUI
-import WidgetKit
 
 struct AddShortTermMemorySheet: View {
     @Environment(\.dismiss) private var dismiss
@@ -114,10 +113,7 @@ struct AddShortTermMemorySheet: View {
     private func add() {
         guard canAdd else { return }
         context.insert(ShortTermMemory(title: trimmedTitle, effort: effort, horizon: horizon))
-        // Save before reloading so the widget's fresh read sees the new memory;
-        // SwiftData's autosave is too lazy to beat the timeline reload otherwise.
-        try? context.save()
-        WidgetCenter.shared.reloadAllTimelines()
+        try? context.saveAndRefreshWidgets()
         dismiss()
     }
 

@@ -43,6 +43,12 @@ struct SettingsView: View {
                 }
 
                 NavigationLink {
+                    ActionEchoSettingsView()
+                } label: {
+                    row("Action echo grace", "hourglass", "How long an action echo keeps trying to catch you")
+                }
+
+                NavigationLink {
                     LongTermSettingsView()
                 } label: {
                     row("Long-term review", "waveform.circle", "How often to nudge a review")
