@@ -135,6 +135,92 @@ public struct LongTermMemorySnapshot: Codable, Sendable {
     }
 }
 
+/// Flat, Codable mirror of the app's global config — the settings that live in
+/// the App Group's UserDefaults rather than SwiftData (the effort profile, the
+/// widget knobs, the Long Term review echo, the action-echo grace window). None
+/// of these were captured before, so a reinstall silently reset them.
+///
+/// Every field is optional so a partial or older/newer settings blob still
+/// decodes: an absent value simply leaves that setting at whatever's already on
+/// the device (see `restore(into:)`), matching how each config's own `load`
+/// treats a missing UserDefaults key.
+public struct SettingsSnapshot: Codable, Sendable {
+    /// 24 raw `Effort` values, one per hour (raw strings so an unknown future
+    /// case round-trips untouched, matching the memory snapshots).
+    public var effortProfileHours: [String]?
+    public var widgetMaxTasks: Int?
+    public var widgetMaxEchoes: Int?
+    public var widgetBackgroundOpacity: Double?
+    public var longTermReviewIntervalDays: Int?
+    public var longTermLastOpenedAt: Date?
+    public var actionEchoGraceMinutes: Int?
+
+    public init(
+        effortProfileHours: [String]? = nil,
+        widgetMaxTasks: Int? = nil,
+        widgetMaxEchoes: Int? = nil,
+        widgetBackgroundOpacity: Double? = nil,
+        longTermReviewIntervalDays: Int? = nil,
+        longTermLastOpenedAt: Date? = nil,
+        actionEchoGraceMinutes: Int? = nil
+    ) {
+        self.effortProfileHours = effortProfileHours
+        self.widgetMaxTasks = widgetMaxTasks
+        self.widgetMaxEchoes = widgetMaxEchoes
+        self.widgetBackgroundOpacity = widgetBackgroundOpacity
+        self.longTermReviewIntervalDays = longTermReviewIntervalDays
+        self.longTermLastOpenedAt = longTermLastOpenedAt
+        self.actionEchoGraceMinutes = actionEchoGraceMinutes
+    }
+
+    /// Snapshot all four config types out of the given shared defaults.
+    public static func capture(from defaults: UserDefaults) -> SettingsSnapshot {
+        let effort = EffortProfile.load(from: defaults)
+        let widget = WidgetSettings.load(from: defaults)
+        let longTerm = LongTermConfig.load(from: defaults)
+        let actionEcho = ActionEchoConfig.load(from: defaults)
+        return SettingsSnapshot(
+            effortProfileHours: effort.hours.map(\.rawValue),
+            widgetMaxTasks: widget.maxTasks,
+            widgetMaxEchoes: widget.maxEchoes,
+            widgetBackgroundOpacity: widget.backgroundOpacity,
+            longTermReviewIntervalDays: longTerm.reviewIntervalDays,
+            longTermLastOpenedAt: longTerm.lastOpenedAt,
+            actionEchoGraceMinutes: actionEcho.graceMinutes
+        )
+    }
+
+    /// Write every present value back into the given shared defaults. Absent
+    /// values fall back to what's already stored, so an older backup can't wipe
+    /// a setting it never knew about. Each config's own init re-clamps on the
+    /// way in, so an out-of-range hand-edited value can't misbehave.
+    public func restore(into defaults: UserDefaults) {
+        if let effortProfileHours {
+            EffortProfile(
+                hours: effortProfileHours.map { Effort(rawValue: $0) ?? Tuning.defaultPreferredEffort }
+            ).save(to: defaults)
+        }
+
+        let widget = WidgetSettings.load(from: defaults)
+        WidgetSettings(
+            maxTasks: widgetMaxTasks ?? widget.maxTasks,
+            maxEchoes: widgetMaxEchoes ?? widget.maxEchoes,
+            backgroundOpacity: widgetBackgroundOpacity ?? widget.backgroundOpacity
+        ).save(to: defaults)
+
+        let longTerm = LongTermConfig.load(from: defaults)
+        LongTermConfig(
+            reviewIntervalDays: longTermReviewIntervalDays ?? longTerm.reviewIntervalDays,
+            lastOpenedAt: longTermLastOpenedAt ?? longTerm.lastOpenedAt
+        ).save(to: defaults)
+
+        let actionEcho = ActionEchoConfig.load(from: defaults)
+        ActionEchoConfig(
+            graceMinutes: actionEchoGraceMinutes ?? actionEcho.graceMinutes
+        ).save(to: defaults)
+    }
+}
+
 // MARK: - Envelope
 
 /// The top-level backup document. `version` is the breadcrumb for a future
@@ -142,7 +228,9 @@ public struct LongTermMemorySnapshot: Codable, Sendable {
 public struct MemoryEchoBackup: Codable, Sendable {
     /// Current on-disk format version. Bump on any breaking shape change.
     /// v2 → v3: added `actionEchoes` (Action Echoes feature).
-    public static let currentVersion = 3
+    /// v3 → v4: added `settings` (the App Group config: effort profile, widget
+    /// knobs, Long Term review interval, action-echo grace window).
+    public static let currentVersion = 4
 
     public var version: Int
     public var exportedAt: Date
@@ -150,6 +238,9 @@ public struct MemoryEchoBackup: Codable, Sendable {
     public var echoes: [EchoSnapshot]
     public var longTermMemories: [LongTermMemorySnapshot]
     public var actionEchoes: [ActionEchoSnapshot]
+    /// Global app config. Optional so a pre-v4 backup (which has no settings)
+    /// still decodes and imports, leaving the device's current settings intact.
+    public var settings: SettingsSnapshot?
 
     public init(
         version: Int = MemoryEchoBackup.currentVersion,
@@ -157,7 +248,8 @@ public struct MemoryEchoBackup: Codable, Sendable {
         shortTermMemories: [ShortTermMemorySnapshot],
         echoes: [EchoSnapshot],
         longTermMemories: [LongTermMemorySnapshot],
-        actionEchoes: [ActionEchoSnapshot] = []
+        actionEchoes: [ActionEchoSnapshot] = [],
+        settings: SettingsSnapshot? = nil
     ) {
         self.version = version
         self.exportedAt = exportedAt
@@ -165,6 +257,7 @@ public struct MemoryEchoBackup: Codable, Sendable {
         self.echoes = echoes
         self.longTermMemories = longTermMemories
         self.actionEchoes = actionEchoes
+        self.settings = settings
     }
 }
 
@@ -205,9 +298,14 @@ public enum BackupService {
         return decoder
     }
 
-    /// Snapshot the entire store into an encodable backup.
+    /// Snapshot the entire store — plus the App Group settings — into an
+    /// encodable backup. `settingsDefaults` is the shared suite the config types
+    /// live in; overridable so tests can pass an isolated suite.
     @MainActor
-    public static func makeBackup(from context: ModelContext) throws -> MemoryEchoBackup {
+    public static func makeBackup(
+        from context: ModelContext,
+        settingsDefaults: UserDefaults = EffortProfile.sharedDefaults()
+    ) throws -> MemoryEchoBackup {
         let memories = try context.fetch(FetchDescriptor<ShortTermMemory>())
         let echoes = try context.fetch(FetchDescriptor<Echo>())
         let longTerm = try context.fetch(FetchDescriptor<LongTermMemory>())
@@ -216,20 +314,29 @@ public enum BackupService {
             shortTermMemories: memories.map(ShortTermMemorySnapshot.init(from:)),
             echoes: echoes.map(EchoSnapshot.init(from:)),
             longTermMemories: longTerm.map(LongTermMemorySnapshot.init(from:)),
-            actionEchoes: actionEchoes.map(ActionEchoSnapshot.init(from:))
+            actionEchoes: actionEchoes.map(ActionEchoSnapshot.init(from:)),
+            settings: SettingsSnapshot.capture(from: settingsDefaults)
         )
     }
 
     /// Snapshot the store and encode it to JSON `Data` ready to write to a file.
     @MainActor
-    public static func exportData(from context: ModelContext) throws -> Data {
-        try makeEncoder().encode(makeBackup(from: context))
+    public static func exportData(
+        from context: ModelContext,
+        settingsDefaults: UserDefaults = EffortProfile.sharedDefaults()
+    ) throws -> Data {
+        try makeEncoder().encode(makeBackup(from: context, settingsDefaults: settingsDefaults))
     }
 
     /// Decode JSON `Data` and REPLACE the entire store with its contents.
-    /// Everything currently stored is deleted first — no merge.
+    /// Everything currently stored is deleted first — no merge. Settings, when
+    /// the backup carries them, are written back into `settingsDefaults`.
     @MainActor
-    public static func importData(_ data: Data, into context: ModelContext) throws {
+    public static func importData(
+        _ data: Data,
+        into context: ModelContext,
+        settingsDefaults: UserDefaults = EffortProfile.sharedDefaults()
+    ) throws {
         let backup = try makeDecoder().decode(MemoryEchoBackup.self, from: data)
         guard backup.version <= MemoryEchoBackup.currentVersion else {
             throw BackupError.unsupportedVersion(backup.version)
@@ -255,6 +362,10 @@ public enum BackupService {
         }
 
         try context.save()
+
+        // Restore the global config after the store is safely saved. A pre-v4
+        // backup has no settings, so the device's current config stays intact.
+        backup.settings?.restore(into: settingsDefaults)
     }
 
     /// A dated, filesystem-safe default filename for the export sheet.

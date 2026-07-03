@@ -136,6 +136,73 @@ struct BackupTests {
         #expect(actionEchoes.isEmpty)
     }
 
+    /// A throwaway UserDefaults suite so the settings round-trip never touches
+    /// the real App Group. Cleared before use so a prior run can't leak in.
+    private func makeDefaults() -> UserDefaults {
+        let name = "BackupTests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name)!
+        defaults.removePersistentDomain(forName: name)
+        return defaults
+    }
+
+    @Test func roundTripPreservesSettings() throws {
+        // Customize every config in an isolated suite, away from all-defaults.
+        let source = makeDefaults()
+        EffortProfile.default
+            .setting(.long, atHour: 9)
+            .setting(.long, atHour: 22)
+            .save(to: source)
+        WidgetSettings(maxTasks: 4, maxEchoes: 2, backgroundOpacity: 0.5).save(to: source)
+        let opened = Date(timeIntervalSince1970: 100_000)
+        LongTermConfig(reviewIntervalDays: 14, lastOpenedAt: opened).save(to: source)
+        ActionEchoConfig(graceMinutes: 90).save(to: source)
+
+        let context = try makeContext()
+        let data = try BackupService.exportData(from: context, settingsDefaults: source)
+
+        // Restore into a fresh, empty suite — the way a reinstall would.
+        let restored = makeDefaults()
+        let restoredContext = try makeContext()
+        try BackupService.importData(data, into: restoredContext, settingsDefaults: restored)
+
+        let effort = EffortProfile.load(from: restored)
+        #expect(effort.preferredEffort(atHour: 9) == .long)
+        #expect(effort.preferredEffort(atHour: 22) == .long)
+        #expect(effort.preferredEffort(atHour: 0) == Tuning.defaultPreferredEffort)
+
+        let widget = WidgetSettings.load(from: restored)
+        #expect(widget.maxTasks == 4)
+        #expect(widget.maxEchoes == 2)
+        #expect(widget.backgroundOpacity == 0.5)
+
+        let longTerm = LongTermConfig.load(from: restored)
+        #expect(longTerm.reviewIntervalDays == 14)
+        #expect(sameInstant(longTerm.lastOpenedAt, opened))
+
+        #expect(ActionEchoConfig.load(from: restored).graceMinutes == 90)
+    }
+
+    @Test func preV4BackupLeavesDeviceSettingsIntact() throws {
+        // A v3-shaped backup carries no settings.
+        let legacy = MemoryEchoBackup(
+            version: 3,
+            shortTermMemories: [],
+            echoes: [],
+            longTermMemories: [],
+            settings: nil
+        )
+        let data = try BackupService.makeEncoder().encode(legacy)
+
+        // The device already has a customized grace window; import must not wipe it.
+        let device = makeDefaults()
+        ActionEchoConfig(graceMinutes: 120).save(to: device)
+
+        let context = try makeContext()
+        try BackupService.importData(data, into: context, settingsDefaults: device)
+
+        #expect(ActionEchoConfig.load(from: device).graceMinutes == 120)
+    }
+
     @Test func rejectsBackupFromANewerFormat() throws {
         let future = MemoryEchoBackup(
             version: MemoryEchoBackup.currentVersion + 1,
