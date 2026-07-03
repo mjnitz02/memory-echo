@@ -18,6 +18,10 @@ struct ShortTermMemoryBandRow: View {
     /// The instant to evaluate staleness against. The Today list feeds it a
     /// value that refreshes on scene-activation; previews/defaults use now.
     var now: Date = .now
+    /// When provided, the title renders as an inline editable field instead of
+    /// static text, so the band itself is the capture surface. The capture
+    /// sheet passes its title binding + focus here.
+    var titleEditing: TitleEditing?
 
     private var daysRemaining: Int {
         memory.daysRemaining(asOf: now)
@@ -35,11 +39,7 @@ struct ShortTermMemoryBandRow: View {
                 .frame(width: 28)
                 .shadow(color: .black.opacity(0.18), radius: 1, y: 1)
 
-            Text(memory.title)
-                .font(.system(size: 22, weight: .bold))
-                .foregroundStyle(.white)
-                .lineLimit(1)
-                .shadow(color: .black.opacity(0.16), radius: 2, y: 1)
+            title
 
             Spacer(minLength: 0)
 
@@ -64,5 +64,38 @@ struct ShortTermMemoryBandRow: View {
                     )
                 )
         }
+    }
+
+    /// Inline-editable title (capture mode) or static title (list mode), styled
+    /// identically so the preview matches the real row exactly.
+    @ViewBuilder
+    private var title: some View {
+        if let titleEditing {
+            TextField(titleEditing.placeholder, text: titleEditing.text, axis: .vertical)
+                .focused(titleEditing.focus)
+                .submitLabel(.done)
+                .onSubmit { titleEditing.onSubmit() }
+                .font(.system(size: 22, weight: .bold))
+                .foregroundStyle(.white)
+                .tint(.white)
+                .lineLimit(1)
+                .shadow(color: .black.opacity(0.16), radius: 2, y: 1)
+        } else {
+            Text(memory.title)
+                .font(.system(size: 22, weight: .bold))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .shadow(color: .black.opacity(0.16), radius: 2, y: 1)
+        }
+    }
+}
+
+extension ShortTermMemoryBandRow {
+    /// Bundles everything the band needs to host the capture field inline.
+    struct TitleEditing {
+        var text: Binding<String>
+        var focus: FocusState<Bool>.Binding
+        var placeholder: String
+        var onSubmit: () -> Void
     }
 }

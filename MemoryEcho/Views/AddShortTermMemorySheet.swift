@@ -49,12 +49,6 @@ struct AddShortTermMemorySheet: View {
             VStack(alignment: .leading, spacing: 28) {
                 preview
 
-                TextField("What needs doing?", text: $title, axis: .vertical)
-                    .font(.system(size: 24, weight: .semibold))
-                    .focused($titleFocused)
-                    .submitLabel(.done)
-                    .onSubmit(add)
-
                 chipGroup(title: "Effort") {
                     ForEach(Effort.allCases) { option in
                         chip(label: option.label, symbol: option.symbol, selected: effort == option) {
@@ -94,18 +88,19 @@ struct AddShortTermMemorySheet: View {
     // MARK: Live preview
 
     private var preview: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("PREVIEW")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.4))
-                .tracking(1.5)
-
-            ShortTermMemoryBandRow(memory: previewMemory)
-                .opacity(trimmedTitle.isEmpty ? 0.5 : 1)
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                .animation(.easeInOut(duration: 0.25), value: effort)
-                .animation(.easeInOut(duration: 0.25), value: horizon)
-        }
+        ShortTermMemoryBandRow(
+            memory: previewMemory,
+            titleEditing: .init(
+                text: $title,
+                focus: $titleFocused,
+                placeholder: "What needs doing?",
+                onSubmit: add
+            )
+        )
+        .opacity(trimmedTitle.isEmpty ? 0.6 : 1)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .animation(.easeInOut(duration: 0.25), value: effort)
+        .animation(.easeInOut(duration: 0.25), value: horizon)
     }
 
     // MARK: Actions
