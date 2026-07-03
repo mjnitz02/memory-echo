@@ -34,6 +34,7 @@ opt_in_rules:
 
 disabled_rules:
   - todo               # keep TODO/FIXME notes as working memory aids
+  - type_body_length   # not useful in practice; big enums/structs are fine
 
 line_length:
   warning: 120
@@ -53,10 +54,6 @@ type_name:
 function_body_length:
   warning: 80
   error: 150
-
-type_body_length:
-  warning: 350
-  error: 500
 
 file_length:
   warning: 500

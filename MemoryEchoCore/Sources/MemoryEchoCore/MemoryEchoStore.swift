@@ -13,7 +13,7 @@ import SwiftData
 public enum MemoryEchoStore {
     /// The schema both processes agree on.
     public static var schema: Schema {
-        Schema([ShortTermMemory.self, Echo.self, LongTermMemory.self])
+        Schema([ShortTermMemory.self, Echo.self, LongTermMemory.self, ActionEcho.self])
     }
 
     /// A container backed by the shared App Group container.

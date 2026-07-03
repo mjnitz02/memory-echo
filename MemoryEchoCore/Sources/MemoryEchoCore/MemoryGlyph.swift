@@ -10,7 +10,7 @@
 //  Symbol and the keywords that trigger it in the fast offline matcher. The
 //  on-device model (GlyphResolver) chooses from the SAME case set, so the LLM
 //  can never name a symbol that doesn't exist — it picks a slot, we map the
-//  slot to its symbol. ~100 buckets give the model real range without needing
+//  slot to its symbol. ~130 buckets give the model real range without needing
 //  a third-party icon library. Glyph is derived, never stored (ShortTermMemory
 //  caches the model's pick separately), so re-tuning needs no migration.
 //
@@ -37,15 +37,20 @@ public enum GlyphCategory: String, CaseIterable, Sendable {
     /// Tech & digital
     case computer, device, software, code, wifi, backup, cloud, settings
     /// Home & chores
-    case cleaning, laundry, trash, repair, build, paint, plumbing, home, furniture, bed, plants
+    case cleaning, laundry, dishes, trash, repair, build, paint, plumbing, maintenance, home, furniture, bed, plants
     /// Food & drink
-    case cooking, coffee, alcohol, restaurant
+    case cooking, baking, coffee, alcohol, restaurant
     /// Health & body
     case health, medication, doctor, mentalHealth, fitness, walk, yoga, sleep, wellbeing
+    /// Kids & play
+    case play, hygiene, bathTime, playground, outing
+    /// Sports & outdoors
+    case sports, soccer, basketball, baseball, swimming, martialArts, skiing, dance, hiking, camping, fishing, beach,
+         picnic, outdoors, puzzle
     /// Family & social
-    case kids, school, people, family, date, pets, celebration
+    case kids, school, people, family, date, pets, celebration, volunteer
     /// Travel & places
-    case travel, packTrip, hotel, directions, location, transit, train, bike, vehicle, fuel
+    case travel, packTrip, hotel, directions, location, transit, train, bike, vehicle, carpool, fuel
     /// Leisure & learning
     case reading, study, music, instrument, movie, tv, game, art, photo
     /// General
@@ -105,16 +110,19 @@ public enum GlyphCategory: String, CaseIterable, Sendable {
         case .settings: "gearshape.fill"
         case .cleaning: "sparkles"
         case .laundry: "washer.fill"
+        case .dishes: "dishwasher.fill"
         case .trash: "trash.fill"
         case .repair: "wrench.and.screwdriver.fill"
         case .build: "hammer.fill"
         case .paint: "paintbrush.fill"
         case .plumbing: "drop.fill"
+        case .maintenance: "wrench.adjustable.fill"
         case .home: "house.fill"
         case .furniture: "sofa.fill"
         case .bed: "bed.double.fill"
         case .plants: "leaf.fill"
         case .cooking: "fork.knife"
+        case .baking: "oven.fill"
         case .coffee: "cup.and.saucer.fill"
         case .alcohol: "wineglass.fill"
         case .restaurant: "fork.knife.circle.fill"
@@ -127,6 +135,26 @@ public enum GlyphCategory: String, CaseIterable, Sendable {
         case .yoga: "figure.yoga"
         case .sleep: "zzz"
         case .wellbeing: "heart.fill"
+        case .play: "teddybear.fill"
+        case .hygiene: "hands.and.sparkles.fill"
+        case .bathTime: "shower.fill"
+        case .playground: "figure.play"
+        case .outing: "figure.2.and.child.holdinghands"
+        case .sports: "sportscourt.fill"
+        case .soccer: "soccerball"
+        case .basketball: "basketball.fill"
+        case .baseball: "baseball.fill"
+        case .swimming: "figure.pool.swim"
+        case .martialArts: "figure.martial.arts"
+        case .skiing: "figure.skiing.downhill"
+        case .dance: "figure.socialdance"
+        case .hiking: "figure.hiking"
+        case .camping: "tent.fill"
+        case .fishing: "fish.fill"
+        case .beach: "beach.umbrella.fill"
+        case .picnic: "basket.fill"
+        case .outdoors: "mountain.2.fill"
+        case .puzzle: "puzzlepiece.fill"
         case .kids: "figure.and.child.holdinghands"
         case .school: "graduationcap.fill"
         case .people: "person.2.fill"
@@ -134,6 +162,7 @@ public enum GlyphCategory: String, CaseIterable, Sendable {
         case .date: "heart.circle.fill"
         case .pets: "pawprint.fill"
         case .celebration: "balloon.fill"
+        case .volunteer: "hands.clap.fill"
         case .travel: "airplane"
         case .packTrip: "suitcase.fill"
         case .hotel: "building.2.fill"
@@ -143,6 +172,7 @@ public enum GlyphCategory: String, CaseIterable, Sendable {
         case .train: "tram.fill"
         case .bike: "bicycle"
         case .vehicle: "car.fill"
+        case .carpool: "car.2.fill"
         case .fuel: "fuelpump.fill"
         case .reading: "book.fill"
         case .study: "book.closed.fill"
@@ -187,7 +217,7 @@ public enum GlyphCategory: String, CaseIterable, Sendable {
         case .returns: ["return", "send back", "refund item"]
         case .giftcard: ["gift card", "voucher", "top up"]
         case .gift: ["gift", "present", "wrap"]
-        case .wishlist: ["wishlist", "want", "favorite", "save for later"]
+        case .wishlist: ["wishlist", "wish list", "add to wishlist", "save for later", "favorite"]
         case .writing: ["write", "note", "jot", "draft", "journal"]
         case .document: ["document", "paperwork", "scan", "file", "contract"]
         case .sign: ["sign", "signature", "initial"]
@@ -213,29 +243,135 @@ public enum GlyphCategory: String, CaseIterable, Sendable {
         case .cloud: ["icloud", "cloud", "sync", "upload"]
         case .settings: ["settings", "configure", "setup", "preferences"]
         case .cleaning: ["clean", "tidy", "declutter", "vacuum", "dust", "scrub"]
-        case .laundry: ["laundry", "wash", "fold", "clothes"]
+        case .laundry: ["laundry", "wash clothes", "fold laundry", "washer", "dryer", "clothes"]
+        case .dishes: [
+                "dishes",
+                "wash dishes",
+                "do the dishes",
+                "dishwasher",
+                "load the dishwasher",
+                "unload the dishwasher"
+            ]
         case .trash: ["trash", "garbage", "bins", "recycle", "rubbish"]
         case .repair: ["fix", "repair", "mend", "tighten", "assemble"]
         case .build: ["build", "hang", "mount", "drill", "shelf"]
         case .paint: ["paint", "decorate", "repaint", "wall"]
         case .plumbing: ["leak", "plumbing", "faucet", "pipe", "drain"]
+        case .maintenance: [
+                "maintenance",
+                "upkeep",
+                "tune up",
+                "service the",
+                "routine service",
+                "change the filter",
+                "change filter"
+            ]
         case .home: ["house", "home", "apartment", "move", "landlord"]
         case .furniture: ["furniture", "sofa", "couch", "ikea"]
         case .bed: ["bed", "mattress", "bedroom"]
-        case .plants: ["water plant", "garden", "lawn", "mow", "weed", "flowers"]
-        case .cooking: ["cook", "dinner", "lunch", "breakfast", "supper", "meal", "recipe", "food", "eat"]
+        case .plants: [
+                "water plant",
+                "garden",
+                "lawn",
+                "mow",
+                "weed",
+                "flowers",
+                "rake",
+                "leaves",
+                "yard work",
+                "yardwork"
+            ]
+        case .cooking: [
+                "cook",
+                "dinner",
+                "lunch",
+                "breakfast",
+                "supper",
+                "meal",
+                "meal prep",
+                "recipe",
+                "food",
+                "eat",
+                "snack",
+                "pack lunch",
+                "lunchbox"
+            ]
+        case .baking: ["bake", "baking", "cookies", "cupcakes", "muffins", "cake batter", "brownies"]
         case .coffee: ["coffee", "tea", "cafe", "brew"]
         case .alcohol: ["wine", "beer", "drinks", "bar"]
         case .restaurant: ["restaurant", "dine out", "reservation", "takeout"]
         case .health: ["health", "clinic", "gp", "medical"]
         case .medication: ["prescription", "pills", "medicine", "refill", "pharmacy"]
-        case .doctor: ["doctor", "checkup", "physical", "dentist"]
+        case .doctor: ["doctor", "checkup", "physical", "dentist", "pediatrician", "well visit", "vaccine", "shots"]
         case .mentalHealth: ["therapy", "meditate", "mental health", "mindfulness"]
         case .fitness: ["gym", "run", "jog", "workout", "exercise", "train"]
         case .walk: ["walk", "steps", "stroll"]
         case .yoga: ["yoga", "stretch", "pilates"]
         case .sleep: ["sleep", "nap", "rest", "bedtime"]
         case .wellbeing: ["self care", "relax", "unwind", "wellbeing"]
+        case .play: [
+                "pretend play",
+                "imaginative play",
+                "play pretend",
+                "make believe",
+                "dress up",
+                "dolls",
+                "action figures",
+                "toys",
+                "legos",
+                "building blocks",
+                "tea party",
+                "playdate",
+                "play date"
+            ]
+        case .hygiene: [
+                "teeth",
+                "brush teeth",
+                "brushing teeth",
+                "floss",
+                "toothbrush",
+                "toothpaste",
+                "wash hands",
+                "wash up",
+                "hand washing",
+                "hygiene"
+            ]
+        case .bathTime: ["bath", "bath time", "bathtub", "shower", "wash hair", "rinse off"]
+        case .playground: ["playground", "swings", "monkey bars", "play structure", "play outside", "slide at the park"]
+        case .outing: [
+                "outing",
+                "day out",
+                "field trip",
+                "zoo",
+                "museum",
+                "aquarium",
+                "children's museum",
+                "play place"
+            ]
+        case .sports: [
+                "sports",
+                "team practice",
+                "sports practice",
+                "game day",
+                "the game",
+                "tryouts",
+                "scrimmage",
+                "tournament"
+            ]
+        case .soccer: ["soccer", "soccer practice", "soccer game", "soccer match"]
+        case .basketball: ["basketball", "hoops", "basketball practice"]
+        case .baseball: ["baseball", "tee ball", "t-ball", "little league", "softball", "batting practice"]
+        case .swimming: ["swim", "swimming", "swim lesson", "swim practice", "pool time"]
+        case .martialArts: ["karate", "taekwondo", "martial arts", "jiu jitsu", "judo", "dojo"]
+        case .skiing: ["skiing", "snowboard", "sledding", "snow day", "snow play", "tubing"]
+        case .dance: ["dance", "dancing", "ballet", "recital", "dance class"]
+        case .hiking: ["hike", "hiking", "trail", "nature walk"]
+        case .camping: ["camp", "camping", "campsite", "campfire", "s'mores"]
+        case .fishing: ["fishing", "go fishing", "cast a line", "bait"]
+        case .beach: ["beach", "seaside", "sandcastle", "ocean", "boardwalk"]
+        case .picnic: ["picnic", "picnic lunch"]
+        case .outdoors: ["outside", "outdoors", "nature", "fresh air", "the park", "go to the park", "backyard"]
+        case .puzzle: ["puzzle", "jigsaw", "board game", "card game", "crossword"]
         case .kids: ["kid", "child", "daycare", "homework", "son", "daughter"]
         case .school: ["school", "class", "exam", "tuition", "university"]
         case .people: ["friend", "meet", "catch up", "visit", "hang out"]
@@ -243,6 +379,7 @@ public enum GlyphCategory: String, CaseIterable, Sendable {
         case .date: ["date night", "anniversary", "partner", "romantic"]
         case .pets: ["dog", "cat", "pet", "vet", "litter", "feed the"]
         case .celebration: ["party", "celebrate", "rsvp", "birthday"]
+        case .volunteer: ["volunteer", "charity", "donate", "fundraiser", "give back", "food bank", "donation drive"]
         case .travel: ["flight", "fly", "trip", "vacation", "airport"]
         case .packTrip: ["pack", "luggage", "suitcase", "packing"]
         case .hotel: ["hotel", "accommodation", "airbnb", "check in"]
@@ -250,17 +387,18 @@ public enum GlyphCategory: String, CaseIterable, Sendable {
         case .location: ["location", "address", "place", "pin"]
         case .transit: ["bus", "transit", "commute", "subway"]
         case .train: ["train", "rail", "metro"]
-        case .bike: ["bike", "cycle", "ride"]
+        case .bike: ["bike", "cycle", "ride bikes", "training wheels", "balance bike", "scooter", "skateboard"]
         case .vehicle: ["car", "drive", "mot", "parking", "garage"]
+        case .carpool: ["carpool", "school run", "school pickup", "car line", "pickup line"]
         case .fuel: ["gas", "fuel", "petrol", "fill up", "charge car"]
-        case .reading: ["read", "book", "chapter", "novel"]
+        case .reading: ["read", "book", "chapter", "novel", "bedtime story", "story time", "storytime", "read to"]
         case .study: ["study", "revise", "course", "learn"]
-        case .music: ["music", "song", "playlist", "practice"]
+        case .music: ["music", "song", "playlist", "listen to music"]
         case .instrument: ["guitar", "piano", "band", "instrument"]
         case .movie: ["movie", "cinema", "netflix"]
         case .tv: ["tv", "show", "stream", "episode"]
         case .game: ["game", "gaming", "xbox", "playstation"]
-        case .art: ["art", "draw", "sketch", "craft"]
+        case .art: ["art", "draw", "sketch", "craft", "coloring", "stickers", "playdough", "play doh"]
         case .photo: ["photo", "picture", "camera", "shoot"]
         case .haircut: ["haircut", "barber", "trim", "salon"]
         case .weather: ["weather", "forecast", "rain check"]

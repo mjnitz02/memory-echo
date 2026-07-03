@@ -16,6 +16,7 @@ struct OverviewEntry: TimelineEntry {
     let date: Date
     let memories: [ShortTermMemorySnapshot]
     let echoes: [EchoSnapshot]
+    var actionEchoes: [ActionEchoSnapshot] = []
     var backgroundOpacity: Double = Tuning.defaultWidgetBackgroundOpacity
 
     static let placeholder = OverviewEntry(
@@ -47,6 +48,7 @@ struct OverviewProvider: TimelineProvider {
                     date: $0.date,
                     memories: $0.memories,
                     echoes: $0.echoes,
+                    actionEchoes: $0.actionEchoes,
                     backgroundOpacity: settings.backgroundOpacity
                 )
             }
@@ -59,6 +61,7 @@ struct OverviewProvider: TimelineProvider {
             date: now,
             memories: WidgetStore.topMemories(now: now, limit: settings.maxTasks),
             echoes: WidgetStore.showingEchoes(now: now, limit: settings.maxEchoes),
+            actionEchoes: WidgetStore.activeActionEchoSnapshots(now: now),
             backgroundOpacity: settings.backgroundOpacity
         )
     }
@@ -89,7 +92,17 @@ struct OverviewWidgetEntryView: View {
                 }
             }
 
-            if !entry.echoes.isEmpty {
+            if !entry.actionEchoes.isEmpty {
+                // Active action echoes take over this section entirely, hiding
+                // the passive echoes — same precedence as EchoesWidget.
+                Text("Echoes")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.4))
+                    .padding(.top, 2)
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(entry.actionEchoes) { ActionEchoChip(echo: $0) }
+                }
+            } else if !entry.echoes.isEmpty {
                 Text("Echoes")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.4))

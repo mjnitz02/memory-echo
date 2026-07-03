@@ -149,4 +149,98 @@ public enum Scheduling {
         let boost = effort == preferredEffort ? Tuning.timeOfDayBoost : 0
         return Double(daysRemaining) - boost
     }
+
+    /// Order memories the way the app's Today list and the widgets both show
+    /// them: `todaySortValue` is the spine, oldest-created breaks a tie. The one
+    /// comparator both callers share, so the two never silently drift apart
+    /// (they did once, before this was unified — see PR #12).
+    public static func rankMemories(
+        _ memories: [ShortTermMemory],
+        asOf now: Date,
+        preferredEffort: Effort
+    ) -> [ShortTermMemory] {
+        memories.sorted { a, b in
+            let va = todaySortValue(
+                daysRemaining: a.daysRemaining(asOf: now),
+                effort: a.effort,
+                preferredEffort: preferredEffort
+            )
+            let vb = todaySortValue(
+                daysRemaining: b.daysRemaining(asOf: now),
+                effort: b.effort,
+                preferredEffort: preferredEffort
+            )
+            if va != vb { return va < vb }
+            return a.createdAt < b.createdAt
+        }
+    }
+
+    // MARK: Action echoes (daily time-of-day-anchored prompts)
+
+    /// The wall-clock anchor at or before `now`: today's if it has passed,
+    /// else yesterday's. Uses `bySettingHour` (not a raw 86 400s add) so it
+    /// stays correct across DST, mirroring the care in `effortFlipInstants`.
+    public static func mostRecentActionEchoAnchor(
+        anchorMinutes: Int,
+        now: Date,
+        calendar: Calendar = .current
+    ) -> Date {
+        let todayAnchor = calendar.date(
+            bySettingHour: anchorMinutes / 60,
+            minute: anchorMinutes % 60,
+            second: 0,
+            of: now
+        ) ?? now
+        if todayAnchor <= now { return todayAnchor }
+        return calendar.date(byAdding: .day, value: -1, to: todayAnchor) ?? todayAnchor
+    }
+
+    /// The next time an action echo will arm — always in the future. A
+    /// widget timeline plots an entry here so the surface flips at the exact
+    /// second instead of catching up on a poll tick.
+    public static func nextActionEchoAnchor(
+        anchorMinutes: Int,
+        now: Date,
+        calendar: Calendar = .current
+    ) -> Date {
+        let todayAnchor = calendar.date(
+            bySettingHour: anchorMinutes / 60,
+            minute: anchorMinutes % 60,
+            second: 0,
+            of: now
+        ) ?? now
+        if todayAnchor > now { return todayAnchor }
+        return calendar.date(byAdding: .day, value: 1, to: todayAnchor) ?? todayAnchor
+    }
+
+    /// Active = we're inside [anchor, anchor + grace] AND this cycle hasn't
+    /// been dismissed. The grace window may cross midnight; anchoring to the
+    /// most-recent anchor handles that automatically. Never dismissed, or
+    /// dismissed on a prior cycle, → active during today's window.
+    public static func actionEchoIsActive(
+        anchorMinutes: Int,
+        graceMinutes: Int,
+        lastDismissedAt: Date?,
+        now: Date,
+        calendar: Calendar = .current
+    ) -> Bool {
+        let anchor = mostRecentActionEchoAnchor(
+            anchorMinutes: anchorMinutes, now: now, calendar: calendar
+        )
+        let windowEnd = anchor.addingTimeInterval(Double(graceMinutes) * 60)
+        guard now <= windowEnd else { return false } // grace elapsed → gone till next arm
+        if let dismissed = lastDismissedAt, dismissed >= anchor { return false } // cleared this cycle
+        return true
+    }
+
+    /// Precedence: active action echoes suppress passive echoes entirely.
+    /// Callers do: `active.isEmpty ? showRegularEchoes() : showActionEchoes(active)`.
+    public static func activeActionEchoes(
+        _ all: [ActionEcho],
+        graceMinutes: Int,
+        now: Date
+    ) -> [ActionEcho] {
+        all.filter { $0.isActive(graceMinutes: graceMinutes, asOf: now) }
+            .sorted { ($0.anchorMinutes, $0.sortIndex) < ($1.anchorMinutes, $1.sortIndex) }
+    }
 }

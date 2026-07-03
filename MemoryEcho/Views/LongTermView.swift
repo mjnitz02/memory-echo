@@ -143,8 +143,7 @@ struct LongTermView: View {
     /// otherwise linger in the store forever.
     private func complete(_ memory: LongTermMemory) {
         withAnimation(.easeOut(duration: 0.25)) { context.delete(memory) }
-        try? context.save()
-        WidgetCenter.shared.reloadAllTimelines()
+        try? context.saveAndRefreshWidgets()
     }
 }
 

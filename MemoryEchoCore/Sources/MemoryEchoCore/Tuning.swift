@@ -45,6 +45,17 @@ public enum Tuning {
     /// Default interval for a freshly-added echo.
     public static let defaultEchoIntervalHours = 24
 
+    // MARK: Action echoes
+
+    /// How long (minutes) an action echo keeps trying to catch you after its
+    /// daily anchor — user-set within these choices.
+    public static let actionEchoGraceChoices = [30, 60, 90, 120, 180]
+    /// Default grace window for a freshly-added action echo.
+    public static let defaultActionEchoGraceMinutes = 120
+    /// Default once-a-day fire time for a freshly-added action echo, in
+    /// minutes since local midnight (20*60 = 8:00pm).
+    public static let defaultActionEchoAnchorMinutes = 20 * 60
+
     // MARK: Long-term memory (review echo)
 
     /// How often the Long Term screen nudges to be re-read, in days — user-set

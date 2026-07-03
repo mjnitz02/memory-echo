@@ -94,4 +94,34 @@ struct SchedulingTests {
             now: now, calendar: cal
         ) == false)
     }
+
+    // MARK: rankMemories (the comparator shared by TodayView and the widgets)
+
+    @Test func rankMemoriesStalenessIsTheSpine() {
+        let now = at(2026, 6, 25)
+        let fresher = ShortTermMemory(title: "Fresher", horizon: .laterThisWeek, createdAt: now)
+        let staler = ShortTermMemory(title: "Staler", horizon: .today, createdAt: now)
+        let ranked = Scheduling.rankMemories([fresher, staler], asOf: now, preferredEffort: .quick)
+        #expect(ranked.map(\.title) == ["Staler", "Fresher"])
+    }
+
+    @Test func rankMemoriesBoostOnlyBreaksTiesAmongEquallyStaleMemories() {
+        let now = at(2026, 6, 25)
+        let matching = ShortTermMemory(title: "Matching", effort: .quick, horizon: .today, createdAt: now)
+        let mismatched = ShortTermMemory(title: "Mismatched", effort: .long, horizon: .today, createdAt: now)
+        let ranked = Scheduling.rankMemories([mismatched, matching], asOf: now, preferredEffort: .quick)
+        #expect(ranked.map(\.title) == ["Matching", "Mismatched"])
+    }
+
+    @Test func rankMemoriesFallsBackToOldestFirstOnAFullTie() {
+        // Same horizon-set instant (so identical staleness/boost), only
+        // `createdAt` differs — isolates the comparator's final tiebreak.
+        let now = at(2026, 6, 25)
+        let setAt = at(2026, 6, 24)
+        let newer = ShortTermMemory(title: "Newer", horizon: .today, createdAt: setAt)
+        let older = ShortTermMemory(title: "Older", horizon: .today, createdAt: setAt)
+        older.createdAt = at(2026, 6, 20)
+        let ranked = Scheduling.rankMemories([newer, older], asOf: now, preferredEffort: .quick)
+        #expect(ranked.map(\.title) == ["Older", "Newer"])
+    }
 }
