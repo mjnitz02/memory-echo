@@ -30,6 +30,15 @@ DEVICE_DERIVED ?= build/device
 DEVICE_ID      ?=
 DEVICE_APP     := $(DEVICE_DERIVED)/Build/Products/$(DEVICE_CONFIG)-iphoneos/$(APP_NAME).app
 
+# Free Personal Team provisioning profiles expire 7 days after they're *created*,
+# not after they're deployed. `-allowProvisioningUpdates` reuses a cached profile
+# while it's still valid, so a mid-week deploy re-signs with a profile whose clock
+# already started — the app dies 7 days after the FIRST deploy of the cycle. We
+# delete our cached profiles before each deploy so Xcode mints fresh ones with a
+# full 7-day window. Only profiles matching BUNDLE_PREFIX are touched.
+PROFILE_DIR    := $(HOME)/Library/Developer/Xcode/UserData/Provisioning Profiles
+BUNDLE_PREFIX  ?= org.mattnitzken.MemoryEcho
+
 XCODEBUILD     := xcodebuild
 # Pretty-print xcodebuild output when xcbeautify is installed; otherwise raw.
 FORMATTER      := $(shell command -v xcbeautify >/dev/null 2>&1 && echo "| xcbeautify" || echo "")
@@ -78,6 +87,15 @@ build:
 .PHONY: deploy
 deploy:
 	@test -n "$(DEVICE_ID)" || { echo "DEVICE_ID is unset. Set it in Makefile.local (copy Makefile.local.example) or pass DEVICE_ID=... — find it via 'xcrun devicectl list devices'."; exit 1; }
+	@echo "Purging cached provisioning profiles for $(BUNDLE_PREFIX) so a fresh 7-day profile is minted…"
+	@if [ -d "$(PROFILE_DIR)" ]; then \
+		for f in "$(PROFILE_DIR)"/*.mobileprovision; do \
+			[ -e "$$f" ] || continue; \
+			if security cms -D -i "$$f" 2>/dev/null | grep -q "$(BUNDLE_PREFIX)"; then \
+				rm -f "$$f" && echo "  removed $$(basename "$$f")"; \
+			fi; \
+		done; \
+	fi
 	set -o pipefail; $(XCODEBUILD) build \
 		-project $(PROJECT) -scheme $(SCHEME) \
 		-configuration $(DEVICE_CONFIG) \
