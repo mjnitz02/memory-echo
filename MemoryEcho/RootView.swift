@@ -31,6 +31,26 @@ struct RootView: View {
                     .transition(.move(edge: .trailing).combined(with: .opacity))
             }
         }
+        // Deep links live here, at the scene root, since routing them means
+        // choosing which screen shows:
+        //   memoryecho://add       → Working Memory + capture sheet
+        //   memoryecho://longterm  → Long Term Memory (from the widget/header echo)
+        //   memoryecho://open      → just launches, wherever we left off
+        .onOpenURL(perform: route)
+    }
+
+    private func route(_ url: URL) {
+        switch url.host {
+        case "add":
+            withAnimation(.easeInOut(duration: 0.3)) { screen = .working }
+            // TodayView owns the capture sheet; hand off through the same bridge
+            // the Action Button / Siri adds use so it presents on appear.
+            CaptureRouter.shared.requestAdd()
+        case "longterm":
+            withAnimation(.easeInOut(duration: 0.3)) { screen = .longTerm }
+        default:
+            break
+        }
     }
 
     private func switchScreens() {

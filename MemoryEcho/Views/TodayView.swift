@@ -145,10 +145,6 @@ struct TodayView: View {
         .onChange(of: captureRouter.pendingAdd) { consumePendingAdd() }
         .task { await resolveMissingGlyphs() }
         .onChange(of: openMemories.count) { Task { await resolveMissingGlyphs() } }
-        .onOpenURL { url in
-            // Deep links from the widget: memoryecho://add opens the capture sheet.
-            if url.host == "add" { showingAdd = true }
-        }
         .confirmationDialog(
             "You keep putting this off.",
             isPresented: Binding(
@@ -183,7 +179,10 @@ struct TodayView: View {
             subtitle: Date.now.formatted(.dateTime.weekday(.wide).month().day()),
             echoActive: longTermEchoActive,
             onSettings: { showingSettings = true },
-            onSwipe: onSwitchScreens
+            onSwipe: onSwitchScreens,
+            // The echo only lights on Working Memory, so tapping it always means
+            // "take me to Long Term" — same destination as a header swipe here.
+            onEchoTap: onSwitchScreens
         )
     }
 

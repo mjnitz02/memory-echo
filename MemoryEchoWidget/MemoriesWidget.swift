@@ -95,10 +95,14 @@ struct MemoriesWidgetEntryView: View {
                     .foregroundStyle(.white)
                 Spacer()
                 if entry.longTermEchoActive {
-                    Image(systemName: "waveform.circle")
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundStyle(LongTermPalette.echo)
-                        .padding(.trailing, 4)
+                    // Tapping the "you're ignoring this" glyph jumps straight to
+                    // the Long Term screen (the fastest way to clear the nag).
+                    Link(destination: URL(string: "memoryecho://longterm")!) {
+                        Image(systemName: "waveform.circle")
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundStyle(LongTermPalette.echo)
+                            .padding(.trailing, 4)
+                    }
                 }
                 Link(destination: URL(string: "memoryecho://add")!) {
                     Image(systemName: "plus.circle.fill")
