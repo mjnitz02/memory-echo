@@ -25,6 +25,9 @@ struct MemoryHeader: View {
     /// Fired on a horizontal header swipe (either direction). There are only two
     /// screens, so the host just toggles.
     let onSwipe: () -> Void
+    /// Fired when the lit echo accent is tapped — a shortcut straight to the Long
+    /// Term screen. No-op by default (the accent only shows on Working Memory).
+    var onEchoTap: () -> Void = {}
 
     var body: some View {
         HStack {
@@ -42,13 +45,17 @@ struct MemoryHeader: View {
             Spacer()
 
             if echoActive {
-                Image(systemName: "waveform.circle")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(LongTermPalette.echo)
-                    .symbolEffect(.pulse)
-                    .padding(.trailing, 6)
-                    .transition(.scale.combined(with: .opacity))
-                    .accessibilityLabel("Long-term memory needs a look")
+                Button(action: onEchoTap) {
+                    Image(systemName: "waveform.circle")
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(LongTermPalette.echo)
+                        .symbolEffect(.pulse)
+                        .padding(.trailing, 6)
+                }
+                .buttonStyle(.plain)
+                .transition(.scale.combined(with: .opacity))
+                .accessibilityLabel("Long-term memory needs a look")
+                .accessibilityHint("Opens Long Term Memory")
             }
 
             Button(action: onSettings) {
