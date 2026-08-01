@@ -61,9 +61,9 @@ public final class ActionEcho {
         cachedGlyph ?? MemoryGlyph.symbol(for: text)
     }
 
-    /// Whether this action echo is currently active: inside its grace
-    /// window since the most recent anchor, and not yet dismissed this
-    /// cycle. See Scheduling.actionEchoIsActive.
+    /// Whether this action echo is currently active: inside its half-open
+    /// grace window [anchor, anchor + grace) since the most recent anchor, and
+    /// not yet dismissed this cycle. See Scheduling.actionEchoIsActive.
     public func isActive(graceMinutes: Int, asOf now: Date = .now) -> Bool {
         Scheduling.actionEchoIsActive(
             anchorMinutes: anchorMinutes,
