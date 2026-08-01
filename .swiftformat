@@ -17,3 +17,12 @@
 --wrapparameters before-first
 --wrapcollections before-first
 --maxwidth 120                # keep in step with SwiftLint line_length warning
+
+# Rules we opt out of. `wrapIfStatementBodies` arrived on by default in 0.62.0
+# and would explode ~47 single-line guards (`if x <= 0 { return .today }`) into
+# three lines each. Keep the compact form.
+--disable wrapIfStatementBodies
+
+# Anyone below this fails on the --disable above (0.61.x errors on the unknown
+# rule name), and CI installs the current Homebrew swiftformat.
+--minversion 0.62.0
