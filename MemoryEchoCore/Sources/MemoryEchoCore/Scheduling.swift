@@ -213,10 +213,16 @@ public enum Scheduling {
         return calendar.date(byAdding: .day, value: 1, to: todayAnchor) ?? todayAnchor
     }
 
-    /// Active = we're inside [anchor, anchor + grace] AND this cycle hasn't
-    /// been dismissed. The grace window may cross midnight; anchoring to the
-    /// most-recent anchor handles that automatically. Never dismissed, or
-    /// dismissed on a prior cycle, → active during today's window.
+    /// Active = we're inside the half-open window [anchor, anchor + grace) AND
+    /// this cycle hasn't been dismissed. The end is *exclusive* on purpose: the
+    /// widget plots its "flip it off" timeline entry at exactly `windowEnd`, so
+    /// that instant must evaluate as inactive — with an inclusive end it read as
+    /// still-active and the echo lingered (purple) until the next arm or a manual
+    /// tap. Mirrors the arm boundary being inclusive (on-transition) and passive
+    /// echoes' inclusive return instant (also an on-transition). The grace window
+    /// may cross midnight; anchoring to the most-recent anchor handles that
+    /// automatically. Never dismissed, or dismissed on a prior cycle, → active
+    /// during today's window.
     public static func actionEchoIsActive(
         anchorMinutes: Int,
         graceMinutes: Int,
@@ -228,7 +234,7 @@ public enum Scheduling {
             anchorMinutes: anchorMinutes, now: now, calendar: calendar
         )
         let windowEnd = anchor.addingTimeInterval(Double(graceMinutes) * 60)
-        guard now <= windowEnd else { return false } // grace elapsed → gone till next arm
+        guard now < windowEnd else { return false } // grace elapsed → gone till next arm
         if let dismissed = lastDismissedAt, dismissed >= anchor { return false } // cleared this cycle
         return true
     }

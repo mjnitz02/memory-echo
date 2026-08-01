@@ -12,6 +12,15 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
+# Pinned tool versions — the source of truth for local installs too, so bump
+# these and `make install-tools` together. Unpinned `brew install` used to land
+# here, which meant an upstream release could turn a new rule on by default and
+# fail a PR that changed nothing (0.62.0's wrapIfStatementBodies did exactly
+# that). Renovate/Dependabot won't touch these; bump them by hand.
+env:
+  SWIFTFORMAT_VERSION: 0.62.1
+  SWIFTLINT_VERSION: 0.65.0
+
 jobs:
   lint:
     name: SwiftLint + SwiftFormat
@@ -19,10 +28,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # SwiftLint ships on the macOS runner image; install both via Homebrew
-      # so the job is self-contained and matches `make install-tools` locally.
-      - name: Install tools
-        run: brew install swiftlint swiftformat
+      # Official release binaries rather than Homebrew: brew only ever installs
+      # current stable, so it can't be pinned. Both zips hold the executable at
+      # the archive root.
+      - name: Install pinned tools
+        run: |
+          set -euo pipefail
+          tools="$RUNNER_TEMP/tools"
+          mkdir -p "$tools"
+          curl -fsSL -o "$RUNNER_TEMP/swiftformat.zip" \
+            "https://github.com/nicklockwood/SwiftFormat/releases/download/$SWIFTFORMAT_VERSION/swiftformat.zip"
+          curl -fsSL -o "$RUNNER_TEMP/swiftlint.zip" \
+            "https://github.com/realm/SwiftLint/releases/download/$SWIFTLINT_VERSION/portable_swiftlint.zip"
+          unzip -qo "$RUNNER_TEMP/swiftformat.zip" -d "$tools"
+          unzip -qo "$RUNNER_TEMP/swiftlint.zip" -d "$tools"
+          chmod +x "$tools/swiftformat" "$tools/swiftlint"
+          echo "$tools" >> "$GITHUB_PATH"
+
+      # Printed so a version-drift failure is obvious in the log instead of
+      # looking like the code regressed.
+      - name: Report tool versions
+        run: |
+          swiftformat --version
+          swiftlint version
 
       - name: Check formatting
         run: make format-check

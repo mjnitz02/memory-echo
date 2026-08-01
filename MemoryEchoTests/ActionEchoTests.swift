@@ -3,8 +3,8 @@
 //  MemoryEchoTests
 //
 //  Pure-logic tests for the daily time-of-day-anchored action echo: active
-//  inside [anchor, anchor + grace] unless already dismissed this cycle,
-//  re-arming automatically the next day with no stored per-day flag.
+//  inside the half-open window [anchor, anchor + grace) unless already dismissed
+//  this cycle, re-arming automatically the next day with no stored per-day flag.
 //
 
 import Foundation
@@ -83,6 +83,24 @@ struct ActionEchoTests {
         ))
     }
 
+    /// The window is half-open: at *exactly* anchor + grace the echo is already
+    /// inactive. This is the instant the widget plots its "flip it off" timeline
+    /// entry, so it MUST read inactive there — otherwise that entry renders the
+    /// echo as still active and it lingers (purple) all night until the next arm
+    /// or a manual tap. Regression test for that lingering bug.
+    @Test func inactiveAtExactlyTheGraceBoundary() {
+        let oneSecondBefore = at(2026, 6, 25, hour: 21, minute: 59).addingTimeInterval(59)
+        #expect(Scheduling.actionEchoIsActive(
+            anchorMinutes: anchorMinutes, graceMinutes: 120,
+            lastDismissedAt: nil, now: oneSecondBefore, calendar: cal
+        ))
+        let exactlyWindowEnd = at(2026, 6, 25, hour: 22, minute: 0) // anchor 20:00 + 120m
+        #expect(!Scheduling.actionEchoIsActive(
+            anchorMinutes: anchorMinutes, graceMinutes: 120,
+            lastDismissedAt: nil, now: exactlyWindowEnd, calendar: cal
+        ))
+    }
+
     @Test func inactiveWhenDismissedThisCycle() {
         let dismissedAt = at(2026, 6, 25, hour: 20, minute: 30)
         let now = at(2026, 6, 25, hour: 21, minute: 0)
@@ -109,10 +127,10 @@ struct ActionEchoTests {
             anchorMinutes: lateAnchor, graceMinutes: 120,
             lastDismissedAt: nil, now: now, calendar: cal
         ))
-        let pastWindow = at(2026, 6, 26, hour: 1, minute: 1)
+        let atWindowEnd = at(2026, 6, 26, hour: 1, minute: 0) // exclusive end → inactive
         #expect(!Scheduling.actionEchoIsActive(
             anchorMinutes: lateAnchor, graceMinutes: 120,
-            lastDismissedAt: nil, now: pastWindow, calendar: cal
+            lastDismissedAt: nil, now: atWindowEnd, calendar: cal
         ))
     }
 

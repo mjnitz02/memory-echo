@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Used by `make testflight`. See the Makefile for the surrounding flow. -->
+	<key>method</key>
+	<string>app-store-connect</string>
+
+	<!-- Hand the .ipa straight to App Store Connect instead of leaving it on
+	     disk — one step, and no separate altool/Transporter invocation. -->
+	<key>destination</key>
+	<string>upload</string>
+
+	<key>teamID</key>
+	<string>MXWN293YHD</string>
+
+	<key>signingStyle</key>
+	<string>automatic</string>
+
+	<!-- Upload dSYMs so TestFlight crash reports come back symbolicated. -->
+	<key>uploadSymbols</key>
+	<true/>
+
+	<!-- Xcode would otherwise silently pick its own build number, overriding
+	     the git-derived CURRENT_PROJECT_VERSION the Makefile passes in. -->
+	<key>manageAppVersionAndBuildNumber</key>
+	<false/>
+</dict>
+</plist>

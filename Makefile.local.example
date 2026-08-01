@@ -4,3 +4,16 @@
 # Your phone's CoreDevice identifier, used by `make deploy`.
 # Find it with: xcrun devicectl list devices
 DEVICE_ID = 00000000-0000-0000-0000-000000000000
+
+# App Store Connect API key, used by `make testflight`.
+# Create one under App Store Connect > Users and Access > Integrations >
+# App Store Connect API, with the App Manager role.
+#
+# ASC_KEY_ID    — the 10-character code in the filename, AuthKey_XXXXXXXXXX.p8
+# ASC_ISSUER_ID — the UUID shown at the top of that same page (one per team)
+#
+# The .p8 downloads exactly once and cannot be re-downloaded; keep it outside
+# the repo. ASC_KEY_PATH defaults to ~/.appstoreconnect/private_keys/, so it
+# only needs setting if the key lives somewhere else.
+ASC_KEY_ID = XXXXXXXXXX
+ASC_ISSUER_ID = 00000000-0000-0000-0000-000000000000
