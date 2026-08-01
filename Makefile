@@ -43,6 +43,9 @@ help:
 	@grep -E '^## ' $(MAKEFILE_LIST) | sed 's/## //' | awk -F': ' '{printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
 
 ## install-tools: install SwiftLint + SwiftFormat (via Homebrew)
+# Homebrew always installs current stable, so this can drift ahead of the
+# versions CI pins in .github/workflows/lint.yml. If a lint/format error only
+# reproduces in one place, compare versions there first.
 .PHONY: install-tools
 install-tools:
 	brew install swiftlint swiftformat
