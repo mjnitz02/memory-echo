@@ -24,5 +24,6 @@
 --disable wrapIfStatementBodies
 
 # Anyone below this fails on the --disable above (0.61.x errors on the unknown
-# rule name), and CI installs the current Homebrew swiftformat.
+# rule name with no hint that the version is the problem). CI pins its exact
+# version in .github/workflows/lint.yml.
 --minversion 0.62.0

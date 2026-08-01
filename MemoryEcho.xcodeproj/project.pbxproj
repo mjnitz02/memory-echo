@@ -14,6 +14,7 @@
 		4FE456FBC718AD629856D314 /* MemoryEchoWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 62C3C238606774A7F9FE33F2 /* MemoryEchoWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		6911E729745F2C2DF90616C0 /* EchoesWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E4B8F0963B513BC7D3EDD1F /* EchoesWidget.swift */; };
 		6DB5BFEAE3B72D2E97DD97FD /* MemoryEchoWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = D57048650784C540AFED496C /* MemoryEchoWidgetBundle.swift */; };
+		74E8D9DBF71C43156F93AA5A /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 909677D9F496BE4BEB6A5C48 /* PrivacyInfo.xcprivacy */; };
 		87663B8BE86ED1DC9EF0F0E8 /* WidgetShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CD2893266832EB2FEFC62F8 /* WidgetShared.swift */; };
 		9091C5AB51C2E2A54BFFE6FA /* OverviewWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86B0E536CBB3401A55CB7BF7 /* OverviewWidget.swift */; };
 		B6A8A8116B58A818AFB6AD40 /* MemoriesWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5DDE916F58D0C4F860B5D31 /* MemoriesWidget.swift */; };
@@ -58,6 +59,7 @@
 		6AED6766B4BA9C92C1398B83 /* WidgetChips.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetChips.swift; sourceTree = "<group>"; };
 		7CD2893266832EB2FEFC62F8 /* WidgetShared.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetShared.swift; sourceTree = "<group>"; };
 		86B0E536CBB3401A55CB7BF7 /* OverviewWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OverviewWidget.swift; sourceTree = "<group>"; };
+		909677D9F496BE4BEB6A5C48 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		B89C45431EF3AD40FA2A7409 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		BB1C965F2FEC72FF00ABE0FA /* MemoryEcho.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MemoryEcho.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BB1C966E2FEC730000ABE0FA /* MemoryEchoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MemoryEchoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -138,6 +140,7 @@
 				D5DDE916F58D0C4F860B5D31 /* MemoriesWidget.swift */,
 				5E4B8F0963B513BC7D3EDD1F /* EchoesWidget.swift */,
 				6AED6766B4BA9C92C1398B83 /* WidgetChips.swift */,
+				909677D9F496BE4BEB6A5C48 /* PrivacyInfo.xcprivacy */,
 			);
 			path = MemoryEchoWidget;
 			sourceTree = "<group>";
@@ -347,6 +350,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				74E8D9DBF71C43156F93AA5A /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -586,11 +590,9 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = MXWN293YHD;
-				ENABLE_APP_SANDBOX = YES;
-				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -604,7 +606,6 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
-				MACOSX_DEPLOYMENT_TARGET = 26.5;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = org.mattnitzken.MemoryEcho;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -618,7 +619,6 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
-				XROS_DEPLOYMENT_TARGET = 26.5;
 			};
 			name = Debug;
 		};
@@ -631,11 +631,9 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = MXWN293YHD;
-				ENABLE_APP_SANDBOX = YES;
-				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -649,7 +647,6 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
-				MACOSX_DEPLOYMENT_TARGET = 26.5;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = org.mattnitzken.MemoryEcho;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -663,7 +660,6 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
-				XROS_DEPLOYMENT_TARGET = 26.5;
 			};
 			name = Release;
 		};
