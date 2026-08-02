@@ -139,16 +139,25 @@ struct ActionEchoTests {
     /// `activeActionEchoes` and the `ActionEcho` model helpers don't take an
     /// explicit `calendar:` (mirroring the sketch), so they resolve anchors
     /// through `Calendar.current` — these two tests build minutes-of-day
-    /// relative to the real "now" instead of a fixed UTC calendar so they're
-    /// correct regardless of the machine's local time zone.
+    /// relative to a "now" in the local time zone instead of a fixed UTC
+    /// calendar so they're correct regardless of the machine's zone.
     private func minutesOfDay(offsetFrom now: Date, by deltaMinutes: Int, calendar: Calendar = .current) -> Int {
         let comps = calendar.dateComponents([.hour, .minute], from: now)
         let minuteOfDay = (comps.hour ?? 0) * 60 + (comps.minute ?? 0)
         return ((minuteOfDay + deltaMinutes) % 1440 + 1440) % 1440
     }
 
+    /// Local noon today. Pinned to midday so the ±60m anchors these tests build
+    /// never wrap past midnight: `activeActionEchoes` sorts by raw minute-of-day
+    /// (wall-clock order, by design), so a "now" near midnight would push the
+    /// hour-earlier echo to 23:xx and flip the expected order. CI runners sit on
+    /// UTC and can run at 00:2x, which is exactly how this bit.
+    private var localNoon: Date {
+        Calendar.current.date(bySettingHour: 12, minute: 0, second: 0, of: .now) ?? .now
+    }
+
     @Test func activeActionEchoesFiltersAndSortsByAnchorThenSortIndex() {
-        let now = Date.now
+        let now = localNoon
         // 1h before "now": still within a 120m grace window → active.
         let early = ActionEcho(text: "Early", anchorMinutes: minutesOfDay(offsetFrom: now, by: -60))
         // At "now" (rounded to the minute): active.
