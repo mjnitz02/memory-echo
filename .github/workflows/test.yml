@@ -31,12 +31,12 @@ jobs:
         run: make test-unit
 
   # UI tests are slower / flakier, so they run in their own job and don't
-  # block the unit gate. Disabled for now (shows as "skipped" on PRs) because
-  # they're slow on GitHub runners — flip this to `true` to enable once the
-  # app reaches a bug-fix-worthy state.
+  # block the unit gate. They're too slow to run on every PR push, so they're
+  # a post-merge validation only: skipped on `pull_request`, run on pushes to
+  # main.
   ui:
     name: UI tests
-    if: false
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
