@@ -89,8 +89,10 @@ struct AddLongTermSheet: View {
         guard canAdd else { return }
         context.insert(LongTermMemory(text: trimmed, isHighPriority: highPriority))
         // Adding counts as engaging, so the review echo doesn't fire immediately.
+        // The stamp syncs, so mirror it alongside saving the new memory.
         LongTermConfig.markOpened()
-        try? context.saveAndRefreshWidgets()
+        try? context.save()
+        context.pushSyncedSettingsAndRefreshWidgets()
         dismiss()
     }
 }

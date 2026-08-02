@@ -3,8 +3,13 @@
 //  MemoryEcho
 //
 //  Dev-only seeding so the Today list isn't empty while we build out the app.
-//  Mirrors the Claude-Design mock's content. Gated by Tuning.seedSampleDataWhenEmpty
-//  and only runs when the store is empty — delete the app to reseed.
+//  Mirrors the Claude-Design mock's content.
+//
+//  OPT-IN ONLY: gated by Tuning.seedSampleDataWhenEmpty, which now reads the
+//  `-MemoryEchoSeedSampleData` launch argument rather than being always-on. It
+//  must never fire on a real install — the store syncs, and an empty store on
+//  launch means "the first sync hasn't landed yet", not "new user". See the
+//  Tuning comment for why cleaning up afterwards doesn't fix that.
 //
 
 import Foundation

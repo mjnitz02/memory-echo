@@ -14,6 +14,15 @@
 	<key>teamID</key>
 	<string>MXWN293YHD</string>
 
+	<!-- Required once the app carries iCloud entitlements: -exportArchive won't
+	     export without knowing which CloudKit environment to bake in, and the
+	     failure message doesn't obviously point here. App Store / TestFlight
+	     builds always use Production — which is why the schema has to be
+	     promoted from Development in the CloudKit console before a TestFlight
+	     build can sync anything. -->
+	<key>iCloudContainerEnvironment</key>
+	<string>Production</string>
+
 	<key>signingStyle</key>
 	<string>automatic</string>
 
