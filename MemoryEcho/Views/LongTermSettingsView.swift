@@ -8,10 +8,13 @@
 //
 
 import MemoryEchoCore
+import SwiftData
 import SwiftUI
 import WidgetKit
 
 struct LongTermSettingsView: View {
+    /// Only for mirroring the interval into its synced `SettingsEntry` row.
+    @Environment(\.modelContext) private var context
     @State private var intervalDays = LongTermConfig.load().reviewIntervalDays
 
     var body: some View {
@@ -42,7 +45,7 @@ struct LongTermSettingsView: View {
             var config = LongTermConfig.load()
             config.reviewIntervalDays = newValue
             config.save()
-            WidgetCenter.shared.reloadAllTimelines()
+            context.pushSyncedSettingsAndRefreshWidgets()
         }
     }
 

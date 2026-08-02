@@ -93,9 +93,27 @@ public enum Tuning {
     /// solid black (the default look).
     public static let defaultWidgetBackgroundOpacity: Double = 1.0
 
+    // MARK: App Group / iCloud
+
+    /// The CloudKit container backing the private database. One container for
+    /// both the app and the widget, since they share one store.
+    public static let cloudKitContainerID = "iCloud.org.mattnitzken.MemoryEcho"
+
     // MARK: Developer convenience
 
-    /// Seed a handful of sample memories + echoes on first launch so the list
-    /// isn't empty while we build. Flip off (or delete the data) any time.
-    public static let seedSampleDataWhenEmpty = true
+    /// Seed a handful of sample memories + echoes so the list isn't empty while
+    /// building. OPT-IN via the `-MemoryEchoSeedSampleData` launch argument
+    /// (set it in the scheme), so it can only ever fire on a run you asked for.
+    ///
+    /// It used to be an always-on `true`, which is unsafe now that the store
+    /// syncs: seeding triggers on an EMPTY store, and under CloudKit "empty" no
+    /// longer means "new user" — it means "the first sync hasn't landed yet".
+    /// On a fresh install the seed would win that race, merge sample rows into
+    /// the real data arriving behind it, and then push the mess up to every
+    /// other device. That defeats the whole point of restore-on-reinstall, so
+    /// the trigger condition is wrong on a synced store no matter what cleans
+    /// up afterwards.
+    public static var seedSampleDataWhenEmpty: Bool {
+        ProcessInfo.processInfo.arguments.contains("-MemoryEchoSeedSampleData")
+    }
 }

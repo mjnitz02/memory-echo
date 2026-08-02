@@ -10,10 +10,13 @@
 //
 
 import MemoryEchoCore
+import SwiftData
 import SwiftUI
 import WidgetKit
 
 struct ActionEchoSettingsView: View {
+    /// Only for mirroring the grace window into its synced `SettingsEntry` row.
+    @Environment(\.modelContext) private var context
     @State private var graceMinutes = ActionEchoConfig.load().graceMinutes
 
     var body: some View {
@@ -44,7 +47,7 @@ struct ActionEchoSettingsView: View {
             var config = ActionEchoConfig.load()
             config.graceMinutes = newValue
             config.save()
-            WidgetCenter.shared.reloadAllTimelines()
+            context.pushSyncedSettingsAndRefreshWidgets()
         }
     }
 

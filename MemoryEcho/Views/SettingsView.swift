@@ -12,6 +12,7 @@
 //
 
 import MemoryEchoCore
+import SwiftData
 import SwiftUI
 import UniformTypeIdentifiers
 import WidgetKit

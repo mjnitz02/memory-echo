@@ -135,7 +135,9 @@ struct LongTermView: View {
     /// and on the widget).
     private func markReviewed() {
         LongTermConfig.markOpened()
-        WidgetCenter.shared.reloadAllTimelines()
+        // The stamp syncs: reviewing here should quiet the nag on every device
+        // rather than making you look twice.
+        context.pushSyncedSettingsAndRefreshWidgets()
     }
 
     /// One swipe clears a memory for good. There's no undo toast here (unlike

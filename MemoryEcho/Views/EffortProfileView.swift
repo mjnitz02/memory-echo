@@ -11,10 +11,14 @@
 //
 
 import MemoryEchoCore
+import SwiftData
 import SwiftUI
 import WidgetKit
 
 struct EffortProfileView: View {
+    /// Only for mirroring the profile into its synced `SettingsEntry` row —
+    /// the profile itself still lives in the App Group defaults.
+    @Environment(\.modelContext) private var context
     @State private var profile = EffortProfile.load()
     /// While a paint-drag is active, the effort being smeared across rows.
     @State private var paintTarget: Effort?
@@ -118,8 +122,9 @@ struct EffortProfileView: View {
             profile = profile.setting(effort, atHour: hour)
         }
         profile.save()
-        // The widget's ordering reads the same profile; refresh it.
-        WidgetCenter.shared.reloadAllTimelines()
+        // The widget's ordering reads the same profile; refresh it. The profile
+        // syncs, so it's also mirrored into its SettingsEntry row here.
+        context.pushSyncedSettingsAndRefreshWidgets()
     }
 
     private func flipped(_ effort: Effort) -> Effort {

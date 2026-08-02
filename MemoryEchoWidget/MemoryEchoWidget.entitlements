@@ -6,5 +6,17 @@
 	<array>
 		<string>group.org.mattnitzken.MemoryEcho</string>
 	</array>
+
+	<!-- Must match MemoryEcho.entitlements: the widget opens the same
+	     CloudKit-backed store, and its dismiss App Intents WRITE to it, so it
+	     needs the container too rather than only reading a local mirror. -->
+	<key>com.apple.developer.icloud-container-identifiers</key>
+	<array>
+		<string>iCloud.org.mattnitzken.MemoryEcho</string>
+	</array>
+	<key>com.apple.developer.icloud-services</key>
+	<array>
+		<string>CloudKit</string>
+	</array>
 </dict>
 </plist>
