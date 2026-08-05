@@ -20,6 +20,7 @@ concurrency:
 env:
   SWIFTFORMAT_VERSION: 0.62.1
   SWIFTLINT_VERSION: 0.65.0
+  GITLEAKS_VERSION: 8.30.1
 
 jobs:
   lint:
@@ -27,6 +28,9 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # gitleaks scans history, not just the working tree.
+          fetch-depth: 0
 
       # Official release binaries rather than Homebrew: brew only ever installs
       # current stable, so it can't be pinned. Both zips hold the executable at
@@ -40,9 +44,12 @@ jobs:
             "https://github.com/nicklockwood/SwiftFormat/releases/download/$SWIFTFORMAT_VERSION/swiftformat.zip"
           curl -fsSL -o "$RUNNER_TEMP/swiftlint.zip" \
             "https://github.com/realm/SwiftLint/releases/download/$SWIFTLINT_VERSION/portable_swiftlint.zip"
+          curl -fsSL -o "$RUNNER_TEMP/gitleaks.tar.gz" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v$GITLEAKS_VERSION/gitleaks_${GITLEAKS_VERSION}_darwin_arm64.tar.gz"
           unzip -qo "$RUNNER_TEMP/swiftformat.zip" -d "$tools"
           unzip -qo "$RUNNER_TEMP/swiftlint.zip" -d "$tools"
-          chmod +x "$tools/swiftformat" "$tools/swiftlint"
+          tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C "$tools" gitleaks
+          chmod +x "$tools/swiftformat" "$tools/swiftlint" "$tools/gitleaks"
           echo "$tools" >> "$GITHUB_PATH"
 
       # Printed so a version-drift failure is obvious in the log instead of
@@ -51,9 +58,13 @@ jobs:
         run: |
           swiftformat --version
           swiftlint version
+          gitleaks version
 
       - name: Check formatting
         run: make format-check
 
       - name: Lint
         run: make lint
+
+      - name: Scan for leaked secrets
+        run: make secrets-scan

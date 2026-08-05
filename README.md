@@ -101,8 +101,8 @@ All common tasks run through the `Makefile`, so local and CI behave identically.
 Run `make` to see every target.
 
 ```sh
-make install-tools   # SwiftLint + SwiftFormat (Homebrew)
-make install-hooks   # enable the pre-commit hook (lint + format-check)
+make install-tools   # SwiftLint + SwiftFormat + gitleaks (Homebrew)
+make install-hooks   # enable the pre-commit hook (lint + format-check + secret scan)
 
 make build           # build the app + widget for the simulator
 make test-unit       # run the Swift Testing unit suite (the CI gate)
@@ -110,6 +110,8 @@ make test-ui         # run the XCUITest UI tests
 make lint            # SwiftLint (strict)
 make format          # rewrite sources with SwiftFormat
 make format-check    # verify formatting without rewriting
+make secrets         # scan staged changes for leaked secrets (gitleaks)
+make secrets-scan    # scan full repo history for leaked secrets
 ```
 
 Override the simulator with e.g. `make test-unit SIMULATOR_NAME="iPhone 16"`.
