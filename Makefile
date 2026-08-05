@@ -91,19 +91,19 @@ endef
 help:
 	@grep -hE '^## ' $(MAKEFILE_LIST) | sed 's/## //' | awk -F': ' '{printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
 
-## install-tools: install SwiftLint + SwiftFormat (via Homebrew)
+## install-tools: install SwiftLint + SwiftFormat + gitleaks (via Homebrew)
 # Homebrew always installs current stable, so this can drift ahead of the
 # versions CI pins in .github/workflows/lint.yml. If a lint/format error only
 # reproduces in one place, compare versions there first.
 .PHONY: install-tools
 install-tools:
-	brew install swiftlint swiftformat
+	brew install swiftlint swiftformat gitleaks
 
 ## install-hooks: enable the repo's git pre-commit hook
 .PHONY: install-hooks
 install-hooks:
 	git config core.hooksPath .githooks
-	@echo "pre-commit hook enabled (lint + format-check)."
+	@echo "pre-commit hook enabled (lint + format-check + secret scan)."
 
 ## lint: run SwiftLint (strict — warnings fail)
 .PHONY: lint
@@ -119,6 +119,16 @@ format:
 .PHONY: format-check
 format-check:
 	swiftformat --lint .
+
+## secrets: scan staged changes for leaked secrets (gitleaks, used by pre-commit)
+.PHONY: secrets
+secrets:
+	gitleaks protect --staged --config .gitleaks.toml -v --redact
+
+## secrets-scan: scan the full repo history for leaked secrets (used in CI)
+.PHONY: secrets-scan
+secrets-scan:
+	gitleaks detect --config .gitleaks.toml -v --redact
 
 ## build: build the app + widget for the simulator
 .PHONY: build

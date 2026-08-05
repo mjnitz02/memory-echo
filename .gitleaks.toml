@@ -1,0 +1,16 @@
+# gitleaks config — extends the built-in default ruleset.
+# https://github.com/gitleaks/gitleaks#configuration
+title = "memory-echo gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Paths that are binary assets or build output, not source — scanning them just wastes time / risks false positives on compressed bytes."
+paths = [
+  '''(^|/)build/''',
+  '''\.png$''',
+  '''\.jpg$''',
+  '''\.jpeg$''',
+  '''\.xcassets/''',
+]

@@ -5,8 +5,8 @@
 
 set -e
 
-if ! command -v swiftlint >/dev/null 2>&1 || ! command -v swiftformat >/dev/null 2>&1; then
-	echo "pre-commit: swiftlint/swiftformat not found — run 'make install-tools'." >&2
+if ! command -v swiftlint >/dev/null 2>&1 || ! command -v swiftformat >/dev/null 2>&1 || ! command -v gitleaks >/dev/null 2>&1; then
+	echo "pre-commit: swiftlint/swiftformat/gitleaks not found — run 'make install-tools'." >&2
 	exit 1
 fi
 
@@ -15,5 +15,8 @@ swiftformat --lint .
 
 echo "pre-commit: swiftlint --strict ..."
 swiftlint lint --strict
+
+echo "pre-commit: gitleaks protect --staged ..."
+gitleaks protect --staged --config .gitleaks.toml -v --redact
 
 echo "pre-commit: OK"

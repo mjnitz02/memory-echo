@@ -23,8 +23,8 @@ These override "nice to have." See [`docs/PLAN.md`](docs/PLAN.md) for the full r
 Everything runs through the `Makefile` (see [`README.md`](README.md) for the full list):
 
 ```sh
-make install-tools   # SwiftLint + SwiftFormat
-make install-hooks   # pre-commit hook (lint + format-check)
+make install-tools   # SwiftLint + SwiftFormat + gitleaks
+make install-hooks   # pre-commit hook (lint + format-check + secret scan)
 
 make test-unit       # the CI gate
 make lint            # SwiftLint (strict)
