@@ -27,6 +27,18 @@ jobs:
         with:
           xcode-version: latest-stable
 
+      # The macos-26 runner image intermittently ships Xcode without the
+      # matching iOS Simulator runtime pre-installed (see
+      # https://github.com/actions/runner-images/issues/13220), which makes
+      # xcodebuild report zero concrete simulator destinations. Fetch the
+      # runtime on demand instead of failing the whole job.
+      - name: Ensure iOS Simulator runtime is installed
+        run: |
+          if ! xcrun simctl list devices available | grep -q "iPhone"; then
+            echo "No iOS simulator runtime found — downloading it..."
+            sudo xcodebuild -downloadPlatform iOS
+          fi
+
       - name: Run unit tests
         run: make test-unit
 
@@ -45,6 +57,15 @@ jobs:
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: latest-stable
+
+      # See the "Ensure iOS Simulator runtime is installed" step in the unit
+      # job for why this is needed.
+      - name: Ensure iOS Simulator runtime is installed
+        run: |
+          if ! xcrun simctl list devices available | grep -q "iPhone"; then
+            echo "No iOS simulator runtime found — downloading it..."
+            sudo xcodebuild -downloadPlatform iOS
+          fi
 
       - name: Run UI tests
         run: make test-ui
