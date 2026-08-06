@@ -26,7 +26,7 @@ jobs:
     # Matches the runner in test.yml: MemoryEcho targets the iOS 26 SDK, which
     # needs Xcode 26. Keep these two in step.
     runs-on: macos-26
-    timeout-minutes: 45
+    timeout-minutes: 60
     permissions:
       # Uploading results to the Security tab needs write here; everything
       # else stays read-only.
@@ -42,11 +42,29 @@ jobs:
         with:
           xcode-version: latest-stable
 
+      # See the matching step in test.yml for why this is needed.
+      - name: Ensure iOS Simulator runtime is installed
+        run: |
+          if ! xcrun simctl list devices available | grep -q "iPhone"; then
+            echo "No iOS simulator runtime found — downloading it..."
+            sudo xcodebuild -downloadPlatform iOS
+          fi
+
+      # build-mode: manual, not autobuild. Autobuild guesses `swift build
+      # --package-path MemoryEchoCore`, which compiles the package for the host
+      # (macOS) rather than iOS. Package.swift declares only `.iOS("26.0")`, so
+      # SwiftPM falls back to an ancient macOS deployment target and every
+      # SwiftData @Model expansion fails with "'Schema' is only available in
+      # macOS 14 or newer". Driving the real xcodebuild target instead analyzes
+      # what actually ships.
       - name: Initialize CodeQL
         uses: github/codeql-action/init@5595ccaf912efad79be6eef63a5619ff05969be3 # v4
         with:
           languages: swift
-          build-mode: autobuild
+          build-mode: manual
+
+      - name: Build for analysis
+        run: make build
 
       - name: Perform CodeQL analysis
         uses: github/codeql-action/analyze@5595ccaf912efad79be6eef63a5619ff05969be3 # v4
