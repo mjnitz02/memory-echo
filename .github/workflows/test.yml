@@ -5,6 +5,12 @@ on:
     branches: [main]
   pull_request:
 
+# The repo default is already read-only, but declaring it here pins the
+# grant in-repo: a change to the repository setting can't silently widen
+# what these jobs can do.
+permissions:
+  contents: read
+
 # Cancel an in-progress run when a newer commit lands on the same branch/PR.
 # head_ref (PR source branch) falls back to ref (push), so push + PR runs for
 # one branch share a group instead of running twice.
@@ -20,10 +26,10 @@ jobs:
     # Adjust this label if the runner image isn't available yet.
     runs-on: macos-26
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Select Xcode
-        uses: maxim-lobanov/setup-xcode@v1
+        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
         with:
           xcode-version: latest-stable
 
@@ -51,10 +57,10 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: macos-26
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Select Xcode
-        uses: maxim-lobanov/setup-xcode@v1
+        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
         with:
           xcode-version: latest-stable
 
