@@ -5,6 +5,12 @@ on:
     branches: [main]
   pull_request:
 
+# The repo default is already read-only, but declaring it here pins the
+# grant in-repo: a change to the repository setting can't silently widen
+# what these jobs can do.
+permissions:
+  contents: read
+
 # Cancel an in-progress run when a newer commit lands on the same branch/PR.
 # head_ref (PR source branch) falls back to ref (push), so push + PR runs for
 # one branch share a group instead of running twice.
@@ -27,7 +33,7 @@ jobs:
     name: SwiftLint + SwiftFormat
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           # gitleaks scans history, not just the working tree.
           fetch-depth: 0

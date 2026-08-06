@@ -1,0 +1,18 @@
+# Normalize line endings on checkin; check out with LF everywhere.
+* text=auto eol=lf
+
+# Xcode project files are machine-generated and merge badly. Treating them as
+# non-text stops eol munging from corrupting them; conflicts still need to be
+# resolved by hand (or by regenerating the project).
+*.pbxproj -text
+*.xcworkspacedata -text
+*.xcscheme -text
+
+# Binary assets — never diff, never eol-convert.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.pdf   binary
+*.ipa   binary
+*.zip   binary
+*.car   binary

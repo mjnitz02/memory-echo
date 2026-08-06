@@ -1,0 +1,54 @@
+name: CodeQL
+
+# Swift analysis has to build the project, so it needs a macOS runner and takes
+# far longer than the lint job. It therefore runs on merges to main and on a
+# weekly schedule rather than on every PR — findings land in the Security tab
+# instead of gating the merge.
+on:
+  push:
+    branches: [main]
+  schedule:
+    # Mondays, 09:17 UTC. Off the hour so it isn't queued with everyone else's
+    # top-of-hour cron jobs.
+    - cron: '17 9 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze Swift
+    # Matches the runner in test.yml: MemoryEcho targets the iOS 26 SDK, which
+    # needs Xcode 26. Keep these two in step.
+    runs-on: macos-26
+    timeout-minutes: 45
+    permissions:
+      # Uploading results to the Security tab needs write here; everything
+      # else stays read-only.
+      security-events: write
+      actions: read
+      contents: read
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
+        with:
+          xcode-version: latest-stable
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@5595ccaf912efad79be6eef63a5619ff05969be3 # v4
+        with:
+          languages: swift
+          build-mode: autobuild
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@5595ccaf912efad79be6eef63a5619ff05969be3 # v4
+        with:
+          category: /language:swift
