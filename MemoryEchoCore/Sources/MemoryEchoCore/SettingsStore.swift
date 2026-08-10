@@ -4,22 +4,21 @@
 //
 //  Projects settings between the two tiers: `SettingsEntry` rows (authoritative,
 //  synced) and the App Group UserDefaults (the read cache the widget and every
-//  existing `load()` call site already use).
+//  `load()` call site use).
 //
-//  The four config types are left completely untouched — their `load(from:)` /
-//  `save(to:)` still speak UserDefaults, so the widget's 13 synchronous reads
-//  and every existing test keep working unchanged. This type is the tier behind
-//  them, and the app drives it at two moments:
+//  The config types themselves know nothing about this — their `load(from:)` /
+//  `save(to:)` speak only UserDefaults, which keeps the widget's synchronous
+//  reads cheap. This is the tier behind them, driven at two moments:
 //
 //      pull(...)  on launch and after a sync lands — rows → defaults
 //      push(...)  after a settings screen saves — defaults → rows
 //
-//  which slots into the app's existing "persist, then refresh widgets" pattern
-//  as "persist, push, then refresh widgets".
+//  making the app's "persist, then refresh widgets" pattern "persist, push,
+//  then refresh widgets".
 //
 //  Only `syncedKeys` moves. The widget display knobs stay device-local; see
-//  SettingsEntry's header for why that's UserDefaults-only rather than a
-//  device-scoped row.
+//  SettingsEntry for why that's UserDefaults-only rather than a device-scoped
+//  row.
 //
 
 import Foundation

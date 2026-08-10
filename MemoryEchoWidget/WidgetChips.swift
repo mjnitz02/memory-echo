@@ -14,12 +14,28 @@ import SwiftData
 import SwiftUI
 import WidgetKit
 
-// MARK: - Dismiss intent (interactive widget button)
+// MARK: - Dismiss intents (interactive widget buttons)
 
-/// Tapping an echo chip runs this in the widget process: it flips the echo's
-/// `lastDismissedAt` in the shared store, so it hides here AND in the app until
-/// its interval re-elapses. `openAppWhenRun` stays false — the whole point is
-/// to dismiss in place without leaving the home screen.
+/// Stamp an echo as dismissed in the shared store, so it hides on the widget
+/// AND in the app. The id arrives as a string because that's all an App Intent
+/// parameter can carry across the process boundary; a bad one is a silent
+/// no-op, since there's nothing useful to tell the user from a home-screen tap.
+private func dismissEcho<Model: PersistentModel & EchoLike>(
+    _: Model.Type,
+    id: String,
+    matching predicate: (UUID) -> Predicate<Model>
+) {
+    guard let uuid = UUID(uuidString: id) else { return }
+    let context = ModelContext(MemoryEchoStore.shared)
+    guard let echo = try? context.fetch(FetchDescriptor(predicate: predicate(uuid))).first else { return }
+    echo.lastDismissedAt = .now
+    try? context.save()
+    WidgetCenter.shared.reloadAllTimelines()
+}
+
+/// Tapping an echo chip runs this in the widget process: the echo hides here
+/// and in the app until its interval re-elapses. `openAppWhenRun` stays false —
+/// the whole point is to dismiss in place without leaving the home screen.
 struct DismissEchoIntent: AppIntent {
     static let title: LocalizedStringResource = "Dismiss Echo"
 
@@ -33,22 +49,13 @@ struct DismissEchoIntent: AppIntent {
     }
 
     func perform() async throws -> some IntentResult {
-        if let uuid = UUID(uuidString: echoID) {
-            let context = ModelContext(MemoryEchoStore.container())
-            let descriptor = FetchDescriptor<Echo>(predicate: #Predicate { $0.id == uuid })
-            if let echo = try? context.fetch(descriptor).first {
-                echo.dismiss()
-                try? context.save()
-            }
-        }
-        WidgetCenter.shared.reloadAllTimelines()
+        dismissEcho(Echo.self, id: echoID) { uuid in #Predicate { $0.id == uuid } }
         return .result()
     }
 }
 
-/// Tapping an action echo chip runs this in the widget process: it flips the
-/// action echo's `lastDismissedAt`, clearing it for today here and in the app
-/// (re-arming automatically at tomorrow's anchor). Mirrors `DismissEchoIntent`.
+/// Tapping an action echo chip clears it for today here and in the app; it
+/// re-arms automatically at tomorrow's anchor.
 struct DismissActionEchoIntent: AppIntent {
     static let title: LocalizedStringResource = "Dismiss Action Echo"
 
@@ -62,15 +69,7 @@ struct DismissActionEchoIntent: AppIntent {
     }
 
     func perform() async throws -> some IntentResult {
-        if let uuid = UUID(uuidString: actionEchoID) {
-            let context = ModelContext(MemoryEchoStore.container())
-            let descriptor = FetchDescriptor<ActionEcho>(predicate: #Predicate { $0.id == uuid })
-            if let echo = try? context.fetch(descriptor).first {
-                echo.dismiss()
-                try? context.save()
-            }
-        }
-        WidgetCenter.shared.reloadAllTimelines()
+        dismissEcho(ActionEcho.self, id: actionEchoID) { uuid in #Predicate { $0.id == uuid } }
         return .result()
     }
 }
@@ -106,71 +105,69 @@ struct ShortTermMemoryRow: View {
     }
 }
 
-/// A tappable echo chip. The whole chip is a Button bound to the dismiss intent,
-/// so a tap quietly retires the echo until its interval comes round.
-struct EchoChip: View {
-    let echo: EchoSnapshot
+/// Glyph + text laid out as a capsule chip. Both chip types are this shape;
+/// they differ only in fill and how loudly they read.
+private struct ChipBody: View {
+    let symbol: String
+    let text: String
     /// When true the chip stretches to fill the height it's given, so a row of
     /// chips fills the widget. The Echoes widget (horizontal) opts in; Overview
     /// keeps content-height chips in its vertical stack.
+    let fillHeight: Bool
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: symbol)
+                .font(.system(size: 11, weight: .semibold))
+            Text(text)
+                .font(.system(size: 14, weight: .semibold))
+                .lineLimit(2)
+                .minimumScaleFactor(0.7)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, maxHeight: fillHeight ? .infinity : nil)
+    }
+}
+
+/// A tappable echo chip — a calm outlined pill. The whole chip is a Button
+/// bound to the dismiss intent, so a tap quietly retires the echo until its
+/// interval comes round.
+struct EchoChip: View {
+    let echo: EchoSnapshot
     var fillHeight = false
 
     var body: some View {
         Button(intent: DismissEchoIntent(echoID: echo.id)) {
-            HStack(spacing: 6) {
-                Image(systemName: "sparkle")
-                    .font(.system(size: 11, weight: .semibold))
-                Text(echo.text)
-                    .font(.system(size: 14, weight: .semibold))
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.7)
-                    .multilineTextAlignment(.center)
-            }
-            .foregroundStyle(.white.opacity(0.85))
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .frame(maxWidth: .infinity, maxHeight: fillHeight ? .infinity : nil)
-            .background(Capsule().fill(.white.opacity(0.10)))
-            .overlay(Capsule().strokeBorder(.white.opacity(0.12)))
+            ChipBody(symbol: "sparkle", text: echo.text, fillHeight: fillHeight)
+                .foregroundStyle(.white.opacity(0.85))
+                .background(Capsule().fill(.white.opacity(0.10)))
+                .overlay(Capsule().strokeBorder(.white.opacity(0.12)))
         }
         .buttonStyle(.plain)
     }
 }
 
-/// A tappable action echo chip: filled violet band + glyph + a stacked-card
-/// edge peeking out behind (vs. `EchoChip`'s calm outlined pill) — the "act on
-/// me now" surface. The whole chip is a Button bound to the dismiss intent.
+/// A tappable action echo chip: filled violet with a stacked-card edge peeking
+/// out behind (vs. `EchoChip`'s calm outline) — the "act on me now" surface.
 struct ActionEchoChip: View {
     let echo: ActionEchoSnapshot
-    /// When true the chip stretches to fill the height it's given, so a row of
-    /// chips fills the widget. The Echoes widget (horizontal) opts in; Overview
-    /// keeps content-height chips in its vertical stack.
     var fillHeight = false
 
     var body: some View {
         Button(intent: DismissActionEchoIntent(actionEchoID: echo.id)) {
-            HStack(spacing: 6) {
-                Image(systemName: echo.glyph)
-                    .font(.system(size: 11, weight: .semibold))
-                Text(echo.text)
-                    .font(.system(size: 14, weight: .semibold))
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.7)
-                    .multilineTextAlignment(.center)
-            }
-            .foregroundStyle(.white)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .frame(maxWidth: .infinity, maxHeight: fillHeight ? .infinity : nil)
-            .background(Capsule().fill(ActionEchoPalette.gradient()))
-            .background(
-                // Stacked-card edge peeking out behind: the "this recurs" affordance.
-                Capsule()
-                    .fill(ActionEchoPalette.gradient())
-                    .opacity(0.55)
-                    .offset(x: 4, y: 4)
-            )
-            .overlay(Capsule().strokeBorder(.white.opacity(0.25)))
+            ChipBody(symbol: echo.glyph, text: echo.text, fillHeight: fillHeight)
+                .foregroundStyle(.white)
+                .background(Capsule().fill(ActionEchoPalette.gradient()))
+                .background(
+                    // Stacked-card edge behind: the "this recurs" affordance.
+                    Capsule()
+                        .fill(ActionEchoPalette.gradient())
+                        .opacity(0.55)
+                        .offset(x: 4, y: 4)
+                )
+                .overlay(Capsule().strokeBorder(.white.opacity(0.25)))
         }
         .buttonStyle(.plain)
     }

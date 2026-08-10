@@ -56,13 +56,17 @@ struct LongTermView: View {
                 )
 
                 if ordered.isEmpty {
-                    emptyState
+                    ScreenEmptyState(
+                        symbol: "tray",
+                        headline: "Nothing parked here.",
+                        hint: "Tap + to stash something you keep forgetting."
+                    )
                 } else {
                     bandList
                 }
             }
 
-            addButton
+            CaptureAddButton { showingAdd = true }
                 .padding(24)
         }
         .preferredColorScheme(.dark)
@@ -77,9 +81,7 @@ struct LongTermView: View {
         List {
             ForEach(ordered) { memory in
                 LongTermBandRow(memory: memory)
-                    .listRowInsets(EdgeInsets())
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color.black)
+                    .bandRow()
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button {
                             complete(memory)
@@ -90,43 +92,7 @@ struct LongTermView: View {
                     }
             }
         }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
-        .background(Color.black)
-        .environment(\.defaultMinListRowHeight, Tuning.bandMinHeight)
-    }
-
-    private var emptyState: some View {
-        VStack(spacing: 12) {
-            Spacer()
-            Image(systemName: "tray")
-                .font(.system(size: 40, weight: .light))
-                .foregroundStyle(.white.opacity(0.3))
-            Text("Nothing parked here.")
-                .font(.system(size: 18, weight: .medium))
-                .foregroundStyle(.white.opacity(0.5))
-            Text("Tap + to stash something you keep forgetting.")
-                .font(.system(size: 14))
-                .foregroundStyle(.white.opacity(0.3))
-                .multilineTextAlignment(.center)
-            Spacer()
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, 24)
-    }
-
-    private var addButton: some View {
-        Button {
-            showingAdd = true
-        } label: {
-            Image(systemName: "plus")
-                .font(.system(size: 24, weight: .bold))
-                .foregroundStyle(.black)
-                .frame(width: 60, height: 60)
-                .background(Circle().fill(.white))
-                .shadow(color: .black.opacity(0.4), radius: 8, y: 4)
-        }
-        .buttonStyle(.plain)
+        .bandList()
     }
 
     // MARK: Actions
@@ -156,7 +122,7 @@ struct LongTermBandRow: View {
     let memory: LongTermMemory
     /// When provided, the text renders as an inline editable field instead of
     /// static text, so the band itself is the capture surface.
-    var textEditing: TextEditing?
+    var textEditing: BandTextEditing?
 
     var body: some View {
         HStack(spacing: 16) {
@@ -174,13 +140,7 @@ struct LongTermBandRow: View {
         .frame(maxWidth: .infinity, minHeight: Tuning.bandMinHeight, alignment: .leading)
         .background {
             LongTermPalette.gradient(highPriority: memory.isHighPriority)
-                .overlay(
-                    LinearGradient(
-                        colors: [.black.opacity(0.14), .clear],
-                        startPoint: .leading,
-                        endPoint: .init(x: 0.6, y: 0.5)
-                    )
-                )
+                .overlay(BandDepthOverlay())
         }
     }
 
@@ -205,15 +165,5 @@ struct LongTermBandRow: View {
                 .lineLimit(2)
                 .shadow(color: .black.opacity(0.16), radius: 2, y: 1)
         }
-    }
-}
-
-extension LongTermBandRow {
-    /// Bundles everything the band needs to host the capture field inline.
-    struct TextEditing {
-        var text: Binding<String>
-        var focus: FocusState<Bool>.Binding
-        var placeholder: String
-        var onSubmit: () -> Void
     }
 }

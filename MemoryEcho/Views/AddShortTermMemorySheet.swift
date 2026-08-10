@@ -2,9 +2,9 @@
 //  AddShortTermMemorySheet.swift
 //  MemoryEcho
 //
-//  The capture sheet (Phase 2). A big autofocused field with a LIVE band
-//  preview that updates its glyph + color as you type and pick effort/horizon,
-//  then two effort chips, three horizon chips, Add.
+//  The capture sheet: an autofocused field with a live band preview that
+//  updates its glyph + color as you type and pick effort/horizon, then two
+//  effort chips, three horizon chips, Add.
 //
 //  The preview is the real `ShortTermMemoryBandRow` driven by a throwaway
 //  (non-inserted) `ShortTermMemory`, so what you see here is exactly what lands

@@ -2,14 +2,14 @@
 //  Scheduling.swift
 //  MemoryEchoCore
 //
-//  The shrink engine, as pure functions (Phase 3). No SwiftUI, no SwiftData —
-//  just date math, so it's trivially testable and shared by app + widget.
+//  The shrink engine, as pure functions. No SwiftUI, no SwiftData — just date
+//  math, so it's trivially testable and shared by app + widget.
 //
-//  The whole "intelligence" of v1: a short-term memory carries a few days of
-//  buffer when its horizon is set, and that buffer burns down by the calendar.
-//  As it runs out the memory drifts toward Today on its own, its color deepens,
-//  and eventually it earns a nudge. No timers, no cron — everything is computed
-//  for a given `now`.
+//  The whole "intelligence" of the app: a short-term memory carries a few days
+//  of buffer when its horizon is set, and that buffer burns down by the
+//  calendar. As it runs out the memory drifts toward Today on its own, its
+//  color deepens, and eventually it earns a nudge. No timers, no cron —
+//  everything is computed for a given `now`.
 //
 
 import Foundation
@@ -140,7 +140,7 @@ public enum Scheduling {
     /// fractional advantage (`Tuning.timeOfDayBoost`). At < 1 the boost is a pure
     /// *same-day tie-break* — a matching memory rises among equally-stale ones but
     /// never leapfrogs a genuinely-staler memory, so a truly-overdue mismatch
-    /// still wins. Lower value sorts higher (nearer the top). See [[EffortProfile]].
+    /// still wins. Lower value sorts higher (nearer the top). See EffortProfile.
     public static func todaySortValue(
         daysRemaining: Int,
         effort: Effort,
@@ -152,8 +152,8 @@ public enum Scheduling {
 
     /// Order memories the way the app's Today list and the widgets both show
     /// them: `todaySortValue` is the spine, oldest-created breaks a tie. The one
-    /// comparator both callers share, so the two never silently drift apart
-    /// (they did once, before this was unified — see PR #12).
+    /// comparator both callers share — they drifted apart when it was written
+    /// twice, so keep it that way.
     public static func rankMemories(
         _ memories: [ShortTermMemory],
         asOf now: Date,

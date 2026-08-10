@@ -16,9 +16,7 @@ public struct ActionEchoConfig: Equatable, Sendable {
     public var graceMinutes: Int
 
     public init(graceMinutes: Int = Tuning.defaultActionEchoGraceMinutes) {
-        let lo = Tuning.actionEchoGraceChoices.min() ?? 30
-        let hi = Tuning.actionEchoGraceChoices.max() ?? 180
-        self.graceMinutes = min(max(graceMinutes, lo), hi)
+        self.graceMinutes = graceMinutes.clamped(toChoices: Tuning.actionEchoGraceChoices)
     }
 
     public static let `default` = ActionEchoConfig()
@@ -29,10 +27,9 @@ public struct ActionEchoConfig: Equatable, Sendable {
 public extension ActionEchoConfig {
     internal static let graceMinutesKey = "actionecho.graceMinutes.v1"
 
-    /// The shared defaults the app and widget both see (falls back to `.standard`
-    /// in previews/tests if the App Group isn't available).
+    /// The shared suite the app and widget both see (see AppGroupDefaults).
     static func sharedDefaults() -> UserDefaults {
-        UserDefaults(suiteName: Tuning.appGroupID) ?? .standard
+        AppGroupDefaults.shared
     }
 
     static func load(from defaults: UserDefaults = sharedDefaults()) -> ActionEchoConfig {

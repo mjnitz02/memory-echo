@@ -15,14 +15,9 @@ public enum ActionEchoPalette {
     private static let start = "#7B2CBF"
     private static let end = "#9D4EDD"
 
-    /// The filled band gradient for an active action echo. Angled like the
-    /// memory bands.
+    /// The filled band gradient for an active action echo.
     public static func gradient() -> LinearGradient {
-        LinearGradient(
-            colors: [Color(hex: start), Color(hex: end)],
-            startPoint: .init(x: 0, y: 0.1),
-            endPoint: .init(x: 1, y: 0.9)
-        )
+        bandGradient(start, end)
     }
 
     /// Solid representative color (the lighter end) — handy for chips/accents.

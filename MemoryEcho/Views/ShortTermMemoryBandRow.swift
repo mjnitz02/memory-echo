@@ -5,9 +5,9 @@
 //  One full-bleed colored band: white glyph + white title over the
 //  effort×staleness gradient. No chrome, no checkbox, no separators.
 //
-//  Color is evaluated `asOf` a passed-in instant (Phase 3) so the band warms
-//  and deepens on its own as the memory ages, and a chronically-ignored memory
-//  shows a pulsing nudge badge.
+//  Color is evaluated `asOf` a passed-in instant, so the band warms and deepens
+//  on its own as the memory ages; a chronically-ignored memory also shows a
+//  pulsing nudge badge.
 //
 
 import MemoryEchoCore
@@ -21,7 +21,7 @@ struct ShortTermMemoryBandRow: View {
     /// When provided, the title renders as an inline editable field instead of
     /// static text, so the band itself is the capture surface. The capture
     /// sheet passes its title binding + focus here.
-    var titleEditing: TitleEditing?
+    var titleEditing: BandTextEditing?
 
     private var daysRemaining: Int {
         memory.daysRemaining(asOf: now)
@@ -55,14 +55,7 @@ struct ShortTermMemoryBandRow: View {
         .frame(maxWidth: .infinity, minHeight: Tuning.bandMinHeight, alignment: .leading)
         .background {
             ShortTermPalette.gradient(effort: memory.effort, daysRemaining: daysRemaining)
-                // subtle darkening on the leading edge for depth, like the mock
-                .overlay(
-                    LinearGradient(
-                        colors: [.black.opacity(0.14), .clear],
-                        startPoint: .leading,
-                        endPoint: .init(x: 0.6, y: 0.5)
-                    )
-                )
+                .overlay(BandDepthOverlay())
         }
     }
 
@@ -87,15 +80,5 @@ struct ShortTermMemoryBandRow: View {
                 .lineLimit(1)
                 .shadow(color: .black.opacity(0.16), radius: 2, y: 1)
         }
-    }
-}
-
-extension ShortTermMemoryBandRow {
-    /// Bundles everything the band needs to host the capture field inline.
-    struct TitleEditing {
-        var text: Binding<String>
-        var focus: FocusState<Bool>.Binding
-        var placeholder: String
-        var onSubmit: () -> Void
     }
 }

@@ -2,10 +2,9 @@
 //  AddShortTermMemoryIntent.swift
 //  MemoryEcho
 //
-//  Phase 5 — the marquee trigger. An App Intent (surfaced as an App Shortcut)
-//  that opens MemoryEcho straight to the capture sheet, keyboard up, so one
-//  press of the Action Button lands you ready to type. Capture is the #1
-//  surface; any friction loses the thought.
+//  An App Intent (surfaced as an App Shortcut) that opens MemoryEcho straight
+//  to the capture sheet, keyboard up, so one press of the Action Button lands
+//  you ready to type. Capture is the #1 surface; any friction loses the thought.
 //
 //  Setup is the user's job (device-only): Settings → Action Button → Shortcut →
 //  pick "Add to MemoryEcho". The same shortcut is also reachable from Siri and

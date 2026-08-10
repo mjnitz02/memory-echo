@@ -17,9 +17,6 @@ public final class ActionEcho {
     /// Stable identity across the app↔widget process boundary (the dismiss
     /// App Intent re-fetches by this). Mirrors Echo / ShortTermMemory.
     public var id: UUID = UUID()
-    /// Every stored property carries a default so the model stays
-    /// CloudKit-compatible (a future SwiftData+CloudKit flip needs every
-    /// attribute optional or defaulted) — the init still sets real values.
     public var text: String = ""
 
     /// Minutes since local midnight for the once-a-day fire time (20*60 =
@@ -35,9 +32,8 @@ public final class ActionEcho {
     public var lastDismissedAt: Date?
 
     /// The on-device model's cached SF Symbol. Action echoes are concrete
-    /// actions ("start the dishwasher", "lock the doors"), so they get a
-    /// glyph like a memory does — unlike text-only Echoes. Resolved once via
-    /// GlyphResolver.
+    /// actions ("start the dishwasher", "lock the doors"), so they get a glyph
+    /// like a memory does — unlike text-only Echoes.
     public var cachedGlyph: String?
 
     /// Ordering when several are active at once (e.g. a shared 8pm cluster).
@@ -53,12 +49,6 @@ public final class ActionEcho {
         self.anchorMinutes = anchorMinutes
         lastDismissedAt = nil
         self.sortIndex = sortIndex
-    }
-
-    /// SF Symbol for this action echo's text: the on-device model's cached
-    /// pick once resolved, otherwise the fast offline matcher.
-    public var glyph: String {
-        cachedGlyph ?? MemoryGlyph.symbol(for: text)
     }
 
     /// Whether this action echo is currently active: inside its half-open
@@ -80,5 +70,11 @@ public final class ActionEcho {
 
     public func dismiss() {
         lastDismissedAt = .now
+    }
+}
+
+extension ActionEcho: GlyphCaching {
+    public var glyphSource: String {
+        text
     }
 }

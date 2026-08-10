@@ -2,7 +2,7 @@
 //  SchedulingTests.swift
 //  MemoryEchoTests
 //
-//  Pure-logic tests for the Phase 3 shrink engine. Dates are built in a fixed
+//  Pure-logic tests for the shrink engine. Dates are built in a fixed
 //  UTC Gregorian calendar so the math is deterministic regardless of the
 //  machine's locale / time zone.
 //
@@ -61,7 +61,7 @@ struct SchedulingTests {
         #expect(Scheduling.needsNudge(daysRemaining: -2, isOpen: true) == true)
         #expect(Scheduling.needsNudge(daysRemaining: -3, isOpen: true) == true)
         #expect(Scheduling.needsNudge(daysRemaining: 0, isOpen: true) == false)
-        // A completed ask never nudges, however overdue.
+        // A completed memory never nudges, however overdue.
         #expect(Scheduling.needsNudge(daysRemaining: -5, isOpen: false) == false)
     }
 

@@ -25,9 +25,7 @@ public struct LongTermConfig: Equatable, Sendable {
         reviewIntervalDays: Int = Tuning.defaultLongTermReviewIntervalDays,
         lastOpenedAt: Date? = nil
     ) {
-        let lo = Tuning.longTermReviewIntervalChoices.min() ?? 1
-        let hi = Tuning.longTermReviewIntervalChoices.max() ?? 365
-        self.reviewIntervalDays = min(max(reviewIntervalDays, lo), hi)
+        self.reviewIntervalDays = reviewIntervalDays.clamped(toChoices: Tuning.longTermReviewIntervalChoices)
         self.lastOpenedAt = lastOpenedAt
     }
 
@@ -51,10 +49,9 @@ public extension LongTermConfig {
     internal static let intervalKey = "longterm.reviewIntervalDays.v1"
     internal static let lastOpenedKey = "longterm.lastOpenedAt.v1"
 
-    /// The shared defaults the app and widget both see (falls back to `.standard`
-    /// in previews/tests if the App Group isn't available).
+    /// The shared suite the app and widget both see (see AppGroupDefaults).
     static func sharedDefaults() -> UserDefaults {
-        UserDefaults(suiteName: Tuning.appGroupID) ?? .standard
+        AppGroupDefaults.shared
     }
 
     static func load(from defaults: UserDefaults = sharedDefaults()) -> LongTermConfig {

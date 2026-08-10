@@ -15,9 +15,6 @@ import SwiftData
 public final class ShortTermMemory {
     /// Stable identity, safe across the app↔widget process boundary and used as
     /// the merge key for JSON backup import. Mirrors Echo / LongTermMemory.
-    /// Every stored property below carries a default so the model stays
-    /// CloudKit-compatible (a future SwiftData+CloudKit flip needs every
-    /// attribute optional or defaulted) — the inits still set real values.
     public var id: UUID = UUID()
     public var title: String = ""
     public var createdAt: Date = Date.now
@@ -32,11 +29,9 @@ public final class ShortTermMemory {
     /// nil = open. One swipe sets this and the row vanishes (no separate delete).
     public var completedAt: Date?
 
-    /// The on-device model's chosen SF Symbol, resolved once after capture and
-    /// cached here so it isn't recomputed per render (and so the widget, which
-    /// can't run the model, shows the smart glyph too). nil until resolved —
-    /// `glyph` falls back to the offline matcher meanwhile. A pure cache: it's
-    /// derived from `title`, so clearing it just re-derives.
+    /// The on-device model's chosen SF Symbol, resolved once after capture so
+    /// the widget (which can't run the model) shows the smart glyph too. nil
+    /// until resolved — `glyph` falls back to the offline matcher meanwhile.
     public var cachedGlyph: String?
 
     public init(
@@ -79,14 +74,6 @@ public final class ShortTermMemory {
         horizonSetAt = .now
     }
 
-    // MARK: Derived presentation
-
-    /// SF Symbol for this memory's title: the on-device model's cached pick once
-    /// resolved, otherwise the fast offline matcher (see GlyphResolver).
-    public var glyph: String {
-        cachedGlyph ?? MemoryGlyph.symbol(for: title)
-    }
-
     // MARK: Derived staleness
 
     /// Buffer remaining for this memory. Negative = overdue.
@@ -107,5 +94,11 @@ public final class ShortTermMemory {
     /// Whether this memory has been ignored long enough to earn the nudge.
     public func needsNudge(asOf now: Date = .now) -> Bool {
         Scheduling.needsNudge(daysRemaining: daysRemaining(asOf: now), isOpen: isOpen)
+    }
+}
+
+extension ShortTermMemory: GlyphCaching {
+    public var glyphSource: String {
+        title
     }
 }

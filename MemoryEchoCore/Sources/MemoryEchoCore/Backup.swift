@@ -4,8 +4,8 @@
 //
 //  Manual JSON backup: a plain Codable snapshot of the whole store that the
 //  user exports to / imports from a file (Files / iCloud Drive) via the picker.
-//  This is the deliberately-low-tech safety net that stands in for full
-//  SwiftData+CloudKit sync until that earns a paid developer account.
+//  CloudKit sync handles the everyday case; this is the manual escape hatch —
+//  a portable copy you can read, edit, and restore from without iCloud.
 //
 //  WHY SNAPSHOT STRUCTS instead of encoding the @Model classes directly:
 //  the JSON shape is decoupled from SwiftData internals, so it stays stable,

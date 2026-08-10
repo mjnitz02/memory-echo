@@ -4,15 +4,16 @@
 //
 //  Every magic number lives here — NOT in a settings screen. These are knobs
 //  *we* turn in code as the app gets felt out in real use; they are never
-//  exposed to the user. (The one exception to "no settings" is the time-of-day
-//  effort profile, which arrives later.)
+//  exposed to the user. The sanctioned exceptions are the time-of-day effort
+//  profile, the echo intervals, and the two grace/review windows, which are
+//  personal inputs to the engine rather than customization.
 //
 
 import CoreGraphics
 import Foundation
 
 public enum Tuning {
-    // MARK: Self-shrinking horizon buffers (days). Phase 3 uses these.
+    // MARK: Self-shrinking horizon buffers (days)
 
     public static let bufferToday = 0
     public static let bufferTomorrow = 1
@@ -21,7 +22,7 @@ public enum Tuning {
     /// How overdue (in negative days remaining) a memory must get before it
     /// earns the accountability nudge. Fires on the first overdue day — the
     /// moment the band turns to its warning color — so the do/reset/trash
-    /// option appears exactly when the color starts escalating. Phase 3.
+    /// option appears exactly when the color starts escalating.
     public static let nudgeThresholdDays = -1
 
     // MARK: Time-of-day effort boost
@@ -34,8 +35,7 @@ public enum Tuning {
     public static let timeOfDayBoost = 0.5
 
     /// The effort preferred at each hour when the user hasn't edited the
-    /// profile. All-`Quick` by default; the profile is the one place this can
-    /// be changed. (See `EffortProfile`.)
+    /// profile. See `EffortProfile`.
     public static let defaultPreferredEffort: Effort = .quick
 
     // MARK: Echoes
@@ -73,10 +73,14 @@ public enum Tuning {
     /// quietly settles as done.
     public static let undoWindowSeconds: Double = 5
 
-    // MARK: App Group
+    // MARK: App Group / iCloud
 
     /// Shared container id so the app and the widget read one SwiftData store.
     public static let appGroupID = "group.org.mattnitzken.MemoryEcho"
+
+    /// The CloudKit container backing the private database. One container for
+    /// both the app and the widget, since they share one store.
+    public static let cloudKitContainerID = "iCloud.org.mattnitzken.MemoryEcho"
 
     // MARK: Widget (user-tunable via WidgetSettings)
 
@@ -93,26 +97,17 @@ public enum Tuning {
     /// solid black (the default look).
     public static let defaultWidgetBackgroundOpacity: Double = 1.0
 
-    // MARK: App Group / iCloud
-
-    /// The CloudKit container backing the private database. One container for
-    /// both the app and the widget, since they share one store.
-    public static let cloudKitContainerID = "iCloud.org.mattnitzken.MemoryEcho"
-
     // MARK: Developer convenience
 
-    /// Seed a handful of sample memories + echoes so the list isn't empty while
-    /// building. OPT-IN via the `-MemoryEchoSeedSampleData` launch argument
-    /// (set it in the scheme), so it can only ever fire on a run you asked for.
+    /// Seed sample memories + echoes so the list isn't empty while building.
+    /// OPT-IN via the `-MemoryEchoSeedSampleData` launch argument (set it in the
+    /// scheme), so it can only fire on a run you asked for.
     ///
-    /// It used to be an always-on `true`, which is unsafe now that the store
-    /// syncs: seeding triggers on an EMPTY store, and under CloudKit "empty" no
-    /// longer means "new user" — it means "the first sync hasn't landed yet".
-    /// On a fresh install the seed would win that race, merge sample rows into
-    /// the real data arriving behind it, and then push the mess up to every
-    /// other device. That defeats the whole point of restore-on-reinstall, so
-    /// the trigger condition is wrong on a synced store no matter what cleans
-    /// up afterwards.
+    /// Never make this always-on: seeding triggers on an EMPTY store, and under
+    /// CloudKit "empty" means "the first sync hasn't landed yet", not "new
+    /// user". On a fresh install the seed wins that race, merges sample rows
+    /// into the real data arriving behind it, and pushes the mess to every other
+    /// device — defeating restore-on-reinstall. No cleanup afterwards fixes it.
     public static var seedSampleDataWhenEmpty: Bool {
         ProcessInfo.processInfo.arguments.contains("-MemoryEchoSeedSampleData")
     }

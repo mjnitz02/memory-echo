@@ -2,7 +2,8 @@
 //  MemoryEchoApp.swift
 //  MemoryEcho
 //
-//  Created by Matt Nitzken on 6/24/26.
+//  The app entry point. Builds the shared SwiftData stack, then runs the three
+//  launch chores: seed (dev only), purge finished items, reconcile settings.
 //
 
 import MemoryEchoCore
@@ -13,7 +14,7 @@ import SwiftUI
 struct MemoryEchoApp: App {
     /// Shared SwiftData stack lives in the App Group container so the widget
     /// reads the same store (see MemoryEchoCore.MemoryEchoStore).
-    let sharedModelContainer = MemoryEchoStore.container()
+    let sharedModelContainer = MemoryEchoStore.shared
 
     var body: some Scene {
         WindowGroup {
@@ -22,7 +23,7 @@ struct MemoryEchoApp: App {
                     let context = sharedModelContainer.mainContext
                     SampleData.seedIfNeeded(context)
                     // Drop done items that are no longer undoable, so finished
-                    // asks / long-term memories don't accumulate in the store.
+                    // memories don't accumulate in the store.
                     try? StoreMaintenance.purgeCompleted(in: context)
                     syncSettings(in: context)
                 }

@@ -102,17 +102,13 @@ enum WidgetStore {
     /// Total open (incomplete) memories. The Memories widget shows only `maxTasks`
     /// of these; the difference is the honest "still piling up" footer count.
     static func openMemoryCount() -> Int {
-        let context = ModelContext(MemoryEchoStore.container())
-        let descriptor = FetchDescriptor<ShortTermMemory>(predicate: #Predicate { $0.completedAt == nil })
-        return (try? context.fetchCount(descriptor)) ?? 0
+        count(FetchDescriptor<ShortTermMemory>(predicate: #Predicate { $0.completedAt == nil }))
     }
 
     /// How many long-term memories are still parked (open). Only the count
     /// matters here — it gates the review echo (an empty list never nags).
     static func longTermOpenCount() -> Int {
-        let context = ModelContext(MemoryEchoStore.container())
-        let descriptor = FetchDescriptor<LongTermMemory>(predicate: #Predicate { $0.completedAt == nil })
-        return (try? context.fetchCount(descriptor)) ?? 0
+        count(FetchDescriptor<LongTermMemory>(predicate: #Predicate { $0.completedAt == nil }))
     }
 
     /// Echoes currently showing (not dismissed within their interval).
@@ -267,24 +263,28 @@ enum WidgetStore {
         return moments.sorted()
     }
 
-    private static func openMemories() -> [ShortTermMemory] {
-        let context = ModelContext(MemoryEchoStore.container())
-        let descriptor = FetchDescriptor<ShortTermMemory>(predicate: #Predicate { $0.completedAt == nil })
-        return (try? context.fetch(descriptor)) ?? []
+    /// One read against the shared App-Group store. A fresh context per read
+    /// keeps each timeline build seeing current data; the container behind it is
+    /// process-wide (MemoryEchoStore.shared), which is the expensive part.
+    private static func fetch<Model: PersistentModel>(_ descriptor: FetchDescriptor<Model>) -> [Model] {
+        (try? ModelContext(MemoryEchoStore.shared).fetch(descriptor)) ?? []
     }
 
+    private static func count(_ descriptor: FetchDescriptor<some PersistentModel>) -> Int {
+        (try? ModelContext(MemoryEchoStore.shared).fetchCount(descriptor)) ?? 0
+    }
+
+    private static func openMemories() -> [ShortTermMemory] {
+        fetch(FetchDescriptor<ShortTermMemory>(predicate: #Predicate { $0.completedAt == nil }))
+    }
+
+    /// Echoes the user actually named — a blank row is an add they abandoned.
     private static func nonEmptyEchoes() -> [Echo] {
-        let context = ModelContext(MemoryEchoStore.container())
-        let descriptor = FetchDescriptor<Echo>(sortBy: [SortDescriptor(\.sortIndex)])
-        let echoes = (try? context.fetch(descriptor)) ?? []
-        return echoes.filter { !$0.text.trimmingCharacters(in: .whitespaces).isEmpty }
+        fetch(FetchDescriptor<Echo>(sortBy: [SortDescriptor(\.sortIndex)])).named
     }
 
     private static func nonEmptyActionEchoes() -> [ActionEcho] {
-        let context = ModelContext(MemoryEchoStore.container())
-        let descriptor = FetchDescriptor<ActionEcho>(sortBy: [SortDescriptor(\.sortIndex)])
-        let actionEchoes = (try? context.fetch(descriptor)) ?? []
-        return actionEchoes.filter { !$0.text.trimmingCharacters(in: .whitespaces).isEmpty }
+        fetch(FetchDescriptor<ActionEcho>(sortBy: [SortDescriptor(\.sortIndex)])).named
     }
 
     /// Same order the app's Today list uses (Scheduling.rankMemories) — sharing
