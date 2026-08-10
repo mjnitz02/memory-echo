@@ -36,8 +36,10 @@ public enum GlyphCategory: String, CaseIterable, Sendable {
     case work, project, meeting, presentation, deadline, idea, goal, review
     /// Tech & digital
     case computer, device, software, code, wifi, backup, cloud, settings
-    /// Home & chores
-    case cleaning, laundry, dishes, trash, repair, build, paint, plumbing, maintenance, home, furniture, bed, plants
+    /// Home & chores. `dishes` precedes `laundry` deliberately: "dishwasher"
+    /// contains "washer", so the other order hands the dishwasher a
+    /// washing-machine glyph.
+    case cleaning, dishes, laundry, trash, repair, build, paint, plumbing, maintenance, home, furniture, bed, plants
     /// Food & drink
     case cooking, baking, coffee, alcohol, restaurant
     /// Health & body
@@ -408,15 +410,19 @@ public enum GlyphCategory: String, CaseIterable, Sendable {
     }
 
     /// All category names — the constrained vocabulary handed to the model.
-    public static var allRawValues: [String] {
-        allCases.map(\.rawValue)
-    }
+    public static let allRawValues: [String] = allCases.map(\.rawValue)
+
+    /// Every category paired with its keywords, in declaration (priority) order.
+    /// Built once: `keywords` is a switch that allocates a fresh array per call,
+    /// and the matcher runs on every band render.
+    private static let keywordIndex: [(category: GlyphCategory, keywords: [String])] =
+        allCases.map { ($0, $0.keywords) }
 
     /// First category whose keywords appear in the (already-lowercased) text.
     static func firstMatch(in lowered: String) -> GlyphCategory? {
-        allCases.first { category in
-            category.keywords.contains { lowered.contains($0) }
-        }
+        keywordIndex.first { _, keywords in
+            keywords.contains { lowered.contains($0) }
+        }?.category
     }
 }
 

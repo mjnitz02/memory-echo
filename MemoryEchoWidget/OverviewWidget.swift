@@ -92,22 +92,14 @@ struct OverviewWidgetEntryView: View {
                 }
             }
 
+            // Active action echoes take over this section entirely, hiding the
+            // passive echoes — same precedence as EchoesWidget.
             if !entry.actionEchoes.isEmpty {
-                // Active action echoes take over this section entirely, hiding
-                // the passive echoes — same precedence as EchoesWidget.
-                Text("Echoes")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.4))
-                    .padding(.top, 2)
-                VStack(alignment: .leading, spacing: 6) {
+                echoSection {
                     ForEach(entry.actionEchoes) { ActionEchoChip(echo: $0) }
                 }
             } else if !entry.echoes.isEmpty {
-                Text("Echoes")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.4))
-                    .padding(.top, 2)
-                VStack(alignment: .leading, spacing: 6) {
+                echoSection {
                     ForEach(entry.echoes) { EchoChip(echo: $0) }
                 }
             }
@@ -117,6 +109,19 @@ struct OverviewWidgetEntryView: View {
         .padding(14)
         .containerBackground(.black.opacity(entry.backgroundOpacity), for: .widget)
         .widgetURL(URL(string: "memoryecho://open"))
+    }
+
+    /// The labelled echo strip at the bottom — same heading and stacking
+    /// whichever kind of echo is filling it.
+    @ViewBuilder
+    private func echoSection(@ViewBuilder _ chips: () -> some View) -> some View {
+        Text("Echoes")
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(.white.opacity(0.4))
+            .padding(.top, 2)
+        VStack(alignment: .leading, spacing: 6) {
+            chips()
+        }
     }
 }
 

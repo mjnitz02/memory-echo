@@ -13,7 +13,7 @@ import Testing
 
 struct TimeOfDayBoostTests {
     @Test func matchingEffortLowersSortValueByTheBoost() {
-        // Same staleness: the matching-effort ask sorts lower (= higher up).
+        // Same staleness: the matching-effort memory sorts lower (= higher up).
         let match = Scheduling.todaySortValue(daysRemaining: 0, effort: .quick, preferredEffort: .quick)
         let miss = Scheduling.todaySortValue(daysRemaining: 0, effort: .long, preferredEffort: .quick)
         #expect(match < miss)
@@ -21,7 +21,7 @@ struct TimeOfDayBoostTests {
     }
 
     @Test func boostIsAPureSameDayTieBreak() {
-        // A matching ask one whole day fresher must NOT leapfrog a staler miss:
+        // A matching memory one whole day fresher must NOT leapfrog a staler miss:
         // staleness stays the spine (boost < 1).
         let stalerMiss = Scheduling.todaySortValue(daysRemaining: 0, effort: .long, preferredEffort: .quick)
         let fresherMatch = Scheduling.todaySortValue(daysRemaining: 1, effort: .quick, preferredEffort: .quick)

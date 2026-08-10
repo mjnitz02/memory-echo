@@ -21,9 +21,6 @@ public final class Echo {
     /// (e.g. the widget's dismiss App Intent re-fetches by this). Object
     /// pointers / PersistentIdentifiers aren't stable across processes.
     public var id: UUID = UUID()
-    /// Every stored property carries a default so the model stays
-    /// CloudKit-compatible (a future SwiftData+CloudKit flip needs every
-    /// attribute optional or defaulted) — the init still sets real values.
     public var text: String = ""
     /// 6 / 12 / 24 / 48 — how often it echoes back.
     public var intervalHours: Int = Tuning.defaultEchoIntervalHours

@@ -34,18 +34,11 @@ struct EchoesView: View {
                 }
                 .onDelete(perform: delete)
             } footer: {
-                Text("Tap an echo on the main screen to dismiss it; it echoes back after its interval.")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.white.opacity(0.4))
+                SectionFooter("Tap an echo on the main screen to dismiss it; it echoes back after its interval.")
             }
 
             Section {
-                Button(action: add) {
-                    Label("Add an echo", systemImage: "plus.circle.fill")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.white)
-                }
-                .listRowBackground(Color.white.opacity(0.06))
+                addButton("Add an echo", action: add)
             }
 
             Section {
@@ -54,32 +47,19 @@ struct EchoesView: View {
                 }
                 .onDelete(perform: deleteActionEcho)
             } header: {
-                Text("Action Echoes")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.5))
+                SectionHeader("Action Echoes")
             } footer: {
-                Text(
+                SectionFooter(
                     "Fires once a day at its time and takes over the Echoes surface — hiding regular " +
                         "echoes — until you tap it or the grace window ends."
                 )
-                .font(.system(size: 12))
-                .foregroundStyle(.white.opacity(0.4))
             }
 
             Section {
-                Button(action: addActionEcho) {
-                    Label("Add an action echo", systemImage: "plus.circle.fill")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.white)
-                }
-                .listRowBackground(Color.white.opacity(0.06))
+                addButton("Add an action echo", action: addActionEcho)
             }
         }
-        .listStyle(.insetGrouped)
-        .scrollContentBackground(.hidden)
-        .background(Color.black.ignoresSafeArea())
-        .navigationTitle("Echoes")
-        .navigationBarTitleDisplayMode(.inline)
+        .settingsList(title: "Echoes")
         .toolbar { EditButton() }
         .task { await resolveMissingActionEchoGlyphs() }
         .onDisappear(perform: finishEditing)
@@ -117,7 +97,7 @@ struct EchoesView: View {
             }
         }
         .padding(.vertical, 2)
-        .listRowBackground(Color.white.opacity(0.06))
+        .listRowBackground(Chrome.rowBackground)
     }
 
     // MARK: A single action echo row
@@ -142,7 +122,7 @@ struct EchoesView: View {
                 .tint(.white)
         }
         .padding(.vertical, 2)
-        .listRowBackground(Color.white.opacity(0.06))
+        .listRowBackground(Chrome.rowBackground)
     }
 
     // MARK: Bindings into the SwiftData model
@@ -187,32 +167,44 @@ struct EchoesView: View {
         )
     }
 
+    // MARK: Section building blocks
+
+    private func addButton(_ title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: "plus.circle.fill")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.white)
+        }
+        .listRowBackground(Chrome.rowBackground)
+    }
+
     // MARK: Mutations
 
+    /// A new row lands blank and focused — you name it in place. `pruneEmpties`
+    /// drops it again if you leave without typing.
     private func add() {
-        let nextIndex = (echoes.map(\.sortIndex).max() ?? -1) + 1
-        let echo = Echo(text: "", sortIndex: nextIndex)
+        let echo = Echo(text: "", sortIndex: echoes.nextSortIndex)
+        context.insert(echo)
+        focused = echo.persistentModelID
+    }
+
+    private func addActionEcho() {
+        let echo = ActionEcho(text: "", sortIndex: actionEchoes.nextSortIndex)
         context.insert(echo)
         focused = echo.persistentModelID
     }
 
     private func delete(at offsets: IndexSet) {
-        for index in offsets {
-            context.delete(echoes[index])
-        }
-        persistAndRefreshWidgets()
-    }
-
-    private func addActionEcho() {
-        let nextIndex = (actionEchoes.map(\.sortIndex).max() ?? -1) + 1
-        let echo = ActionEcho(text: "", sortIndex: nextIndex)
-        context.insert(echo)
-        focused = echo.persistentModelID
+        delete(offsets.map { echoes[$0] })
     }
 
     private func deleteActionEcho(at offsets: IndexSet) {
-        for index in offsets {
-            context.delete(actionEchoes[index])
+        delete(offsets.map { actionEchoes[$0] })
+    }
+
+    private func delete(_ models: [some PersistentModel]) {
+        for model in models {
+            context.delete(model)
         }
         persistAndRefreshWidgets()
     }
@@ -227,44 +219,25 @@ struct EchoesView: View {
         Task { await resolveMissingActionEchoGlyphs() }
     }
 
-    /// Drop echoes (and action echoes) left blank (e.g. an "add" the user never named).
+    /// Drop rows left blank — an "add" the user never named.
     private func pruneEmpties() {
-        let blanks = echoes.filter {
-            $0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        }
-        for echo in blanks {
+        for echo in echoes where echo.isBlank {
             context.delete(echo)
         }
-
-        let blankActionEchoes = actionEchoes.filter {
-            $0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        }
-        for echo in blankActionEchoes {
+        for echo in actionEchoes where echo.isBlank {
             context.delete(echo)
         }
     }
 
-    /// Fill in the on-device model's glyph for any action echo that doesn't have
-    /// one yet (fresh adds, renames — see `bindingActionEchoText` — or seeded
-    /// data). Mirrors `TodayView.resolveMissingGlyphs()`: best-effort, asks the
-    /// model serially, caches each pick, then persists + refreshes the widgets
-    /// once. The offline matcher already gives every action echo a glyph via
-    /// `ActionEcho.glyph`, so this only ever upgrades.
+    /// Upgrade any action echo still on the offline glyph to the on-device
+    /// model's pick (see GlyphResolver.backfill). Renames clear the cache — see
+    /// `bindingActionEchoText` — so this re-resolves them too.
     private func resolveMissingActionEchoGlyphs() async {
         guard !resolvingActionEchoGlyphs else { return }
         resolvingActionEchoGlyphs = true
         defer { resolvingActionEchoGlyphs = false }
 
-        var changed = false
-        for echo in actionEchoes where echo.cachedGlyph == nil {
-            let trimmed = echo.text.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else { continue }
-            if let symbol = await GlyphResolver.symbol(for: trimmed) {
-                echo.cachedGlyph = symbol
-                changed = true
-            }
-        }
-        if changed { persistAndRefreshWidgets() }
+        if await GlyphResolver.backfill(actionEchoes) { persistAndRefreshWidgets() }
     }
 
     private func persistAndRefreshWidgets() {

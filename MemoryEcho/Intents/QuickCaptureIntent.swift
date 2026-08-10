@@ -51,7 +51,7 @@ struct QuickCaptureIntent: AppIntent {
     func perform() async throws -> some IntentResult & ProvidesDialog & ShowsSnippetView {
         let parsed = CaptureParser.parse(text)
 
-        let context = ModelContext(MemoryEchoStore.container())
+        let context = ModelContext(MemoryEchoStore.shared)
         let memory = ShortTermMemory(title: parsed.title, effort: parsed.effort, horizon: parsed.horizon)
         context.insert(memory)
         try context.saveAndRefreshWidgets()

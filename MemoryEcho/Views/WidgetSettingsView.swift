@@ -24,22 +24,22 @@ struct WidgetSettingsView: View {
                 Stepper(value: $settings.maxTasks, in: Tuning.widgetTaskCountRange) {
                     rowLabel("Tasks shown", "\(settings.maxTasks)")
                 }
-                .listRowBackground(Color.white.opacity(0.06))
+                .listRowBackground(Chrome.rowBackground)
             } header: {
-                header("Tasks")
+                SectionHeader("Tasks")
             } footer: {
-                footer("How many tasks the Tasks and Overview widgets list.")
+                SectionFooter("How many tasks the Tasks and Overview widgets list.")
             }
 
             Section {
                 Stepper(value: $settings.maxEchoes, in: Tuning.widgetEchoCountRange) {
                     rowLabel("Echoes shown", "\(settings.maxEchoes)")
                 }
-                .listRowBackground(Color.white.opacity(0.06))
+                .listRowBackground(Chrome.rowBackground)
             } header: {
-                header("Echoes")
+                SectionHeader("Echoes")
             } footer: {
-                footer("How many echoes the Echoes and Overview widgets list.")
+                SectionFooter("How many echoes the Echoes and Overview widgets list.")
             }
 
             Section {
@@ -51,18 +51,14 @@ struct WidgetSettingsView: View {
                     }
                 }
                 .padding(.vertical, 4)
-                .listRowBackground(Color.white.opacity(0.06))
+                .listRowBackground(Chrome.rowBackground)
             } header: {
-                header("Background")
+                SectionHeader("Background")
             } footer: {
-                footer("Lower it to let your wallpaper show through the black.")
+                SectionFooter("Lower it to let your wallpaper show through the black.")
             }
         }
-        .listStyle(.insetGrouped)
-        .scrollContentBackground(.hidden)
-        .background(Color.black.ignoresSafeArea())
-        .navigationTitle("Widgets")
-        .navigationBarTitleDisplayMode(.inline)
+        .settingsList(title: "Widgets")
         .onChange(of: settings) { _, newValue in
             newValue.save()
             WidgetCenter.shared.reloadAllTimelines()
@@ -94,18 +90,6 @@ struct WidgetSettingsView: View {
                     .fill(.black.opacity(settings.backgroundOpacity))
             )
             .frame(width: 36, height: 28)
-    }
-
-    private func header(_ text: String) -> some View {
-        Text(text)
-            .font(.system(size: 13, weight: .semibold))
-            .foregroundStyle(.white.opacity(0.5))
-    }
-
-    private func footer(_ text: String) -> some View {
-        Text(text)
-            .font(.system(size: 12))
-            .foregroundStyle(.white.opacity(0.4))
     }
 }
 

@@ -2,14 +2,13 @@
 //  SampleData.swift
 //  MemoryEcho
 //
-//  Dev-only seeding so the Today list isn't empty while we build out the app.
-//  Mirrors the Claude-Design mock's content.
+//  Dev-only seeding so the list isn't empty while working on the app.
 //
-//  OPT-IN ONLY: gated by Tuning.seedSampleDataWhenEmpty, which now reads the
-//  `-MemoryEchoSeedSampleData` launch argument rather than being always-on. It
-//  must never fire on a real install — the store syncs, and an empty store on
-//  launch means "the first sync hasn't landed yet", not "new user". See the
-//  Tuning comment for why cleaning up afterwards doesn't fix that.
+//  OPT-IN ONLY, gated by Tuning.seedSampleDataWhenEmpty (the
+//  `-MemoryEchoSeedSampleData` launch argument). It must never fire on a real
+//  install — the store syncs, and an empty store on launch means "the first
+//  sync hasn't landed yet", not "new user". See Tuning for why cleaning up
+//  afterwards doesn't fix that.
 //
 
 import Foundation
@@ -39,9 +38,9 @@ enum SampleData {
     }
 
     /// Seven memories spanning both effort families and, crucially, a spread of
-    /// `horizonSetAt` ages so the Phase 3 shrink engine is visible on launch:
-    /// some have climbed past their buffer (overdue / nudge), some are fresh.
-    /// `daysAgo` back-dates the set time by whole calendar days.
+    /// `horizonSetAt` ages so the shrink engine is visible on launch: some have
+    /// climbed past their buffer (overdue / nudge), some are fresh. `daysAgo`
+    /// back-dates the set time by whole calendar days.
     private static func sampleShortTermMemories() -> [ShortTermMemory] {
         let cal = Calendar.current
         func daysAgo(_ days: Int) -> Date {

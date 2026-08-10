@@ -2,13 +2,12 @@
 //  SettingsView.swift
 //  MemoryEcho
 //
-//  The app's one sanctioned settings surface, reached from the header gear.
-//  Deliberately tiny: two screens, no more. Keeping all configuration here is
-//  what lets the main screen stay pure — the Today "+" is ONLY for adding asks,
-//  and intentions are ambient reminders there, never configured inline.
+//  The app's one settings surface, reached from the header gear. Keeping every
+//  knob behind it is what lets the main screen stay pure: the Today "+" only
+//  ever adds a memory, and echoes stay ambient there, never configured inline.
 //
-//    1. Time of day — the 24-hour effort profile (re-ranks Today).
-//    2. Intentions  — add / remove / set the echo-back interval.
+//  Each row pushes a single-purpose screen; the backup export/import sits at
+//  the bottom.
 //
 
 import MemoryEchoCore
@@ -34,7 +33,7 @@ struct SettingsView: View {
                 NavigationLink {
                     EffortProfileView()
                 } label: {
-                    row("Time of day", "clock", "When you favor quick vs. longer asks")
+                    row("Time of day", "clock", "When you favor quick vs. longer work")
                 }
 
                 NavigationLink {
@@ -69,11 +68,7 @@ struct SettingsView: View {
 
                 backupSection
             }
-            .listStyle(.insetGrouped)
-            .scrollContentBackground(.hidden)
-            .background(Color.black.ignoresSafeArea())
-            .navigationTitle("Settings")
-            .navigationBarTitleDisplayMode(.inline)
+            .settingsList(title: "Settings")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
@@ -119,7 +114,7 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: Backup (manual JSON export / import — the iCloud-via-Files safety net)
+    // MARK: Backup (manual JSON export / import)
 
     private var backupSection: some View {
         Section {
@@ -130,10 +125,8 @@ struct SettingsView: View {
             .listRowBackground(Color.clear)
             .listRowInsets(EdgeInsets())
         } footer: {
-            Text("Save a copy of everything to Files or iCloud Drive, or restore from one. "
+            SectionFooter("Save a copy of everything to Files or iCloud Drive, or restore from one. "
                 + "Importing replaces all current data.")
-                .font(.system(size: 12))
-                .foregroundStyle(.white.opacity(0.4))
         }
     }
 
@@ -197,7 +190,7 @@ struct SettingsView: View {
             }
         }
         .padding(.vertical, 4)
-        .listRowBackground(Color.white.opacity(0.06))
+        .listRowBackground(Chrome.rowBackground)
     }
 }
 

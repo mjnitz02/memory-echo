@@ -2,13 +2,14 @@
 //  TodayView.swift
 //  MemoryEcho
 //
-//  The one screen. A dark, full-bleed list of colored memory bands, ordered by
-//  derived priority (Phase 1 = horizon then age). Echo chips ride across the
-//  top. One full swipe completes a memory and it vanishes — no checkbox, no
-//  delete, no separators, no chrome.
+//  The main screen. A dark, full-bleed list of colored memory bands ordered by
+//  derived priority — staleness, nudged by the time-of-day effort boost (see
+//  Scheduling.rankMemories). Echo chips ride across the top. One full swipe
+//  completes a memory and it vanishes: no checkbox, no delete, no separators,
+//  no chrome.
 //
-//  The composite prioritization + time-of-day boost + self-shrinking horizon
-//  all land in later phases; this is the skeleton they hang on.
+//  `now` is re-read on a minute tick and on scene activation, which is what
+//  makes the order and the band colors age on their own while the app sits open.
 //
 
 import Combine
@@ -68,10 +69,7 @@ struct TodayView: View {
     /// without the app being reopened.
     private let minuteTick = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
-    /// Staleness is the spine: fewest days remaining floats to the top. Among
-    /// similarly-stale memories, the one whose effort matches the current hour's
-    /// preference gets a gentle boost (Scheduling.todaySortValue); oldest first
-    /// breaks any remaining tie.
+    /// The one order the app and the widgets share (Scheduling.rankMemories).
     private var orderedMemories: [ShortTermMemory] {
         Scheduling.rankMemories(openMemories, asOf: now, preferredEffort: profile.preferredEffort(asOf: now))
     }
@@ -103,7 +101,11 @@ struct TodayView: View {
                 }
 
                 if orderedMemories.isEmpty {
-                    emptyState
+                    ScreenEmptyState(
+                        symbol: "sparkles",
+                        headline: "Nothing on your mind.",
+                        hint: "Tap + to add a memory."
+                    )
                 } else {
                     bandList
                     siriHint
@@ -118,7 +120,7 @@ struct TodayView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 
-            addButton
+            CaptureAddButton { showingAdd = true }
                 .padding(24)
         }
         .preferredColorScheme(.dark)
@@ -278,9 +280,7 @@ struct TodayView: View {
                     .onTapGesture {
                         if memory.needsNudge(asOf: now) { nudgingMemory = memory }
                     }
-                    .listRowInsets(EdgeInsets())
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color.black)
+                    .bandRow()
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button {
                             complete(memory)
@@ -291,27 +291,7 @@ struct TodayView: View {
                     }
             }
         }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
-        .background(Color.black)
-        .environment(\.defaultMinListRowHeight, Tuning.bandMinHeight)
-    }
-
-    private var emptyState: some View {
-        VStack(spacing: 12) {
-            Spacer()
-            Image(systemName: "sparkles")
-                .font(.system(size: 40, weight: .light))
-                .foregroundStyle(.white.opacity(0.3))
-            Text("Nothing on your mind.")
-                .font(.system(size: 18, weight: .medium))
-                .foregroundStyle(.white.opacity(0.5))
-            Text("Tap + to add a memory.")
-                .font(.system(size: 14))
-                .foregroundStyle(.white.opacity(0.3))
-            Spacer()
-        }
-        .frame(maxWidth: .infinity)
+        .bandList()
     }
 
     /// A whisper-quiet nudge toward the fastest capture path. In-app only (the
@@ -327,22 +307,6 @@ struct TodayView: View {
             .padding(.horizontal, 24)
             .padding(.top, 10)
             .padding(.bottom, 12)
-    }
-
-    // MARK: Add button
-
-    private var addButton: some View {
-        Button {
-            showingAdd = true
-        } label: {
-            Image(systemName: "plus")
-                .font(.system(size: 24, weight: .bold))
-                .foregroundStyle(.black)
-                .frame(width: 60, height: 60)
-                .background(Circle().fill(.white))
-                .shadow(color: .black.opacity(0.4), radius: 8, y: 4)
-        }
-        .buttonStyle(.plain)
     }
 
     // MARK: Undo toast
@@ -379,24 +343,15 @@ struct TodayView: View {
         showingAdd = true
     }
 
-    /// Fill in the on-device model's glyph for any open memory that doesn't have
-    /// one yet (fresh captures, Action-Button adds, seeded data). Best-effort:
-    /// asks the model serially, caches each pick, then persists + refreshes the
-    /// widgets once. The offline matcher already gives every memory a glyph, so
-    /// this only ever upgrades — and silently no-ops when the model's away.
+    /// Upgrade any open memory still on the offline glyph to the on-device
+    /// model's pick (see GlyphResolver.backfill). The guard keeps overlapping
+    /// passes out — this fires on appear and again whenever the count changes.
     private func resolveMissingGlyphs() async {
         guard !resolvingGlyphs else { return }
         resolvingGlyphs = true
         defer { resolvingGlyphs = false }
 
-        var changed = false
-        for memory in openMemories where memory.cachedGlyph == nil {
-            if let symbol = await GlyphResolver.symbol(for: memory.title) {
-                memory.cachedGlyph = symbol
-                changed = true
-            }
-        }
-        if changed { persistAndRefreshWidgets() }
+        if await GlyphResolver.backfill(openMemories) { persistAndRefreshWidgets() }
     }
 
     private func complete(_ memory: ShortTermMemory) {

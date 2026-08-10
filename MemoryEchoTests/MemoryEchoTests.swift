@@ -2,7 +2,8 @@
 //  MemoryEchoTests.swift
 //  MemoryEchoTests
 //
-//  Created by Matt Nitzken on 6/24/26.
+//  The glyph channel: the offline keyword matcher, and the contract that keeps
+//  the on-device model's constrained vocabulary honest.
 //
 
 import MemoryEchoCore
@@ -25,6 +26,17 @@ struct MemoryEchoTests {
 
     @Test func matcherFallsBackWhenNothingMatches() {
         #expect(MemoryGlyph.symbol(for: "Ponder the universe") == MemoryGlyph.fallback)
+    }
+
+    /// Declaration order is match priority, and one keyword is a substring of
+    /// another: "dishwasher" contains laundry's "washer". `dishes` has to come
+    /// first or the dishwasher gets a washing-machine glyph.
+    @Test func dishwasherBeatsTheLaundryWasherKeyword() {
+        #expect(MemoryGlyph.symbol(for: "Start the dishwasher") == GlyphCategory.dishes.symbol)
+        #expect(MemoryGlyph.symbol(for: "Unload the dishwasher") == GlyphCategory.dishes.symbol)
+        // ...without stealing the genuine laundry phrasings.
+        #expect(MemoryGlyph.symbol(for: "Move the laundry to the dryer") == GlyphCategory.laundry.symbol)
+        #expect(MemoryGlyph.symbol(for: "Put clothes in the washer") == GlyphCategory.laundry.symbol)
     }
 
     /// The on-device model is constrained to GlyphCategory's raw names, so every

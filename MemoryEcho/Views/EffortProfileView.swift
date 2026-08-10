@@ -2,12 +2,11 @@
 //  EffortProfileView.swift
 //  MemoryEcho
 //
-//  One of the two settings screens (pushed from SettingsView): the 24-hour
-//  effort profile that gently boosts matching-effort asks in the Today order
-//  (see EffortProfile / Scheduling.todaySortValue). Deliberately plain — one row
-//  per hour, the hour and its priority, a Quick/Long toggle. Drag a finger down
-//  the column to flip a run of hours at once. All 24 fit on screen (no scroll)
-//  so that vertical drag is unambiguous and the whole day reads at a glance.
+//  The 24-hour effort profile, which gently boosts matching-effort memories in
+//  the Today order (see EffortProfile / Scheduling.todaySortValue).
+//  Deliberately plain: one row per hour with a Quick/Long toggle. Drag a finger
+//  down the column to flip a run of hours at once — all 24 fit on screen with
+//  no scroll, so that vertical drag is unambiguous and the day reads at a glance.
 //
 
 import MemoryEchoCore

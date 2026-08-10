@@ -8,9 +8,9 @@
 //  guided generation, so the model can never invent a bogus SF Symbol — it
 //  picks a slot, we map the slot to its symbol.
 //
-//  Async + best-effort: returns nil when the model is unavailable (and the
-//  caller keeps the fast offline AskGlyph result). The app caches a non-nil
-//  result on the Ask so this runs once per reminder, not once per render.
+//  Async + best-effort: returns nil when the model is unavailable, and the
+//  caller keeps the fast offline MemoryGlyph result. The pick is cached on the
+//  model so this runs once per item, not once per render.
 //
 
 import Foundation
@@ -18,6 +18,24 @@ import Foundation
 #if canImport(FoundationModels)
     import FoundationModels
 #endif
+
+/// A model whose glyph is derived from text and cached alongside it. Both
+/// glyph-bearing types (ShortTermMemory, ActionEcho) conform, so the fallback
+/// and the backfill pass are written once.
+public protocol GlyphCaching: AnyObject {
+    /// The text the glyph is derived from.
+    var glyphSource: String { get }
+    /// The on-device model's pick, once resolved. A pure cache — clearing it
+    /// just re-derives.
+    var cachedGlyph: String? { get set }
+}
+
+public extension GlyphCaching {
+    /// The model's cached pick once resolved, otherwise the offline matcher.
+    var glyph: String {
+        cachedGlyph ?? MemoryGlyph.symbol(for: glyphSource)
+    }
+}
 
 public enum GlyphResolver {
     /// The best SF Symbol for `title` per the on-device model, or nil if the
@@ -33,6 +51,25 @@ public enum GlyphResolver {
             }
         #endif
         return nil
+    }
+
+    /// Fill in the model's glyph for every item that doesn't have one yet
+    /// (fresh captures, renames, imported data). Asks the model serially and
+    /// caches each pick; returns whether anything changed, so the caller saves
+    /// and refreshes the widgets once rather than per item.
+    ///
+    /// Only ever an upgrade: the offline matcher already gives every item a
+    /// glyph, so this silently no-ops when the model is away.
+    @MainActor
+    @discardableResult
+    public static func backfill(_ items: [some GlyphCaching]) async -> Bool {
+        var changed = false
+        for item in items where item.cachedGlyph == nil {
+            guard let symbol = await symbol(for: item.glyphSource) else { continue }
+            item.cachedGlyph = symbol
+            changed = true
+        }
+        return changed
     }
 }
 

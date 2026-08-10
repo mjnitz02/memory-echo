@@ -27,7 +27,7 @@ public struct WidgetSettings: Equatable, Sendable {
     ) {
         self.maxTasks = maxTasks.clamped(to: Tuning.widgetTaskCountRange)
         self.maxEchoes = maxEchoes.clamped(to: Tuning.widgetEchoCountRange)
-        self.backgroundOpacity = min(1, max(0, backgroundOpacity))
+        self.backgroundOpacity = backgroundOpacity.clamped(to: 0 ... 1)
     }
 
     public static let `default` = WidgetSettings()
@@ -42,10 +42,9 @@ public extension WidgetSettings {
     internal static let maxEchoesKey = "widget.maxIntentions.v1"
     internal static let backgroundOpacityKey = "widget.backgroundOpacity.v1"
 
-    /// The shared defaults the app and widget both see (falls back to `.standard`
-    /// in previews/tests if the App Group isn't available).
+    /// The shared suite the app and widget both see (see AppGroupDefaults).
     static func sharedDefaults() -> UserDefaults {
-        UserDefaults(suiteName: Tuning.appGroupID) ?? .standard
+        AppGroupDefaults.shared
     }
 
     /// Loads stored settings, falling back to the default for any unset value.
@@ -63,11 +62,5 @@ public extension WidgetSettings {
         defaults.set(maxTasks, forKey: Self.maxTasksKey)
         defaults.set(maxEchoes, forKey: Self.maxEchoesKey)
         defaults.set(backgroundOpacity, forKey: Self.backgroundOpacityKey)
-    }
-}
-
-private extension Comparable {
-    func clamped(to range: ClosedRange<Self>) -> Self {
-        min(max(self, range.lowerBound), range.upperBound)
     }
 }

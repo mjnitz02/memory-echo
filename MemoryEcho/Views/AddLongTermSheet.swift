@@ -48,7 +48,7 @@ struct AddLongTermSheet: View {
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(.white)
                 }
-                .tint(Color(hex: "#D89A3A"))
+                .tint(LongTermPalette.highPriorityAccent)
 
                 Spacer()
             }

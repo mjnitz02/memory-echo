@@ -72,11 +72,9 @@ public extension EffortProfile {
     /// Key the profile is stored under in the shared suite.
     internal static let storageKey = "effortProfile.hours.v1"
 
-    /// The shared defaults the app and widget both see. Falls back to
-    /// `.standard` if the App Group somehow isn't available (keeps logic alive
-    /// in previews/tests rather than crashing).
+    /// The shared suite the app and widget both see (see AppGroupDefaults).
     static func sharedDefaults() -> UserDefaults {
-        UserDefaults(suiteName: Tuning.appGroupID) ?? .standard
+        AppGroupDefaults.shared
     }
 
     /// Loads the stored profile, or `.default` if none has been saved.

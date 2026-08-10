@@ -18,7 +18,7 @@ struct CaptureConfirmationView: View {
     let effort: Effort
     let horizon: Horizon
 
-    /// A freshly captured ask is always "today" on the staleness axis.
+    /// A freshly captured memory is always "today" on the staleness axis.
     private var stop: ColorStop {
         .today
     }
