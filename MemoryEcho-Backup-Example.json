@@ -1,4 +1,29 @@
 {
+  "actionEchoes" : [
+    {
+      "anchorMinutes" : 450,
+      "cachedGlyph" : "pawprint.fill",
+      "id" : "1A2B3C4D-0004-4000-8000-000000000001",
+      "lastDismissedAt" : "2026-01-15T07:36:11Z",
+      "sortIndex" : 0,
+      "text" : "Feed the cat"
+    },
+    {
+      "anchorMinutes" : 1170,
+      "cachedGlyph" : "trash.fill",
+      "id" : "1A2B3C4D-0004-4000-8000-000000000002",
+      "sortIndex" : 1,
+      "text" : "Take the bins out"
+    },
+    {
+      "anchorMinutes" : 1200,
+      "cachedGlyph" : "dishwasher.fill",
+      "id" : "1A2B3C4D-0004-4000-8000-000000000003",
+      "lastDismissedAt" : "2026-01-14T20:22:40Z",
+      "sortIndex" : 2,
+      "text" : "Start the dishwasher"
+    }
+  ],
   "echoes" : [
     {
       "id" : "1A2B3C4D-0001-4000-8000-000000000001",
@@ -43,8 +68,43 @@
       "text" : "Clear the gutters before autumn"
     }
   ],
+  "settings" : {
+    "actionEchoGraceMinutes" : 120,
+    "effortProfileHours" : [
+      "quick",
+      "quick",
+      "quick",
+      "quick",
+      "quick",
+      "quick",
+      "quick",
+      "quick",
+      "long",
+      "long",
+      "long",
+      "long",
+      "quick",
+      "quick",
+      "long",
+      "long",
+      "long",
+      "quick",
+      "quick",
+      "quick",
+      "quick",
+      "quick",
+      "quick",
+      "quick"
+    ],
+    "longTermLastOpenedAt" : "2026-01-13T09:12:30Z",
+    "longTermReviewIntervalDays" : 4,
+    "widgetBackgroundOpacity" : 0.85,
+    "widgetMaxEchoes" : 4,
+    "widgetMaxTasks" : 8
+  },
   "shortTermMemories" : [
     {
+      "cachedGlyph" : "pencil",
       "createdAt" : "2026-01-14T18:57:48Z",
       "effortRaw" : "long",
       "horizonRaw" : "tomorrow",
@@ -53,6 +113,7 @@
       "title" : "Draft the quarterly summary"
     },
     {
+      "cachedGlyph" : "figure.hiking",
       "createdAt" : "2026-01-14T14:27:57Z",
       "effortRaw" : "long",
       "horizonRaw" : "laterThisWeek",
@@ -69,6 +130,7 @@
       "title" : "Rotate the winter tyres"
     },
     {
+      "cachedGlyph" : "leaf.fill",
       "createdAt" : "2026-01-15T00:51:17Z",
       "effortRaw" : "quick",
       "horizonRaw" : "tomorrow",
@@ -85,5 +147,5 @@
       "title" : "Post the parcel"
     }
   ],
-  "version" : 2
+  "version" : 4
 }

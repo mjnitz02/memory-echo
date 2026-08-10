@@ -203,6 +203,36 @@ struct BackupTests {
         #expect(ActionEchoConfig.load(from: device).graceMinutes == 120)
     }
 
+    /// The checked-in example file must stay importable. It's the only
+    /// hand-editable reference for the backup shape, and it silently rotted once
+    /// already — it sat at v2 after `actionEchoes` and `settings` were added,
+    /// which no round-trip test can catch (those re-encode through the current
+    /// type, so a missing key is never exercised). Decoding the real file is
+    /// what pins it.
+    @Test func checkedInExampleFileStillImports() throws {
+        let url = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent() // MemoryEchoTests/
+            .deletingLastPathComponent() // repo root
+            .appendingPathComponent("MemoryEcho-Backup-Example.json")
+        let data = try Data(contentsOf: url)
+
+        let backup = try BackupService.makeDecoder().decode(MemoryEchoBackup.self, from: data)
+        #expect(backup.version == MemoryEchoBackup.currentVersion)
+
+        // Every content type present, so the example stays a complete reference.
+        #expect(!backup.shortTermMemories.isEmpty)
+        #expect(!backup.echoes.isEmpty)
+        #expect(!backup.longTermMemories.isEmpty)
+        #expect(!backup.actionEchoes.isEmpty)
+        let settings = try #require(backup.settings)
+        #expect(settings.effortProfileHours?.count == 24)
+
+        // And it imports for real, not just decodes.
+        let context = try makeContext()
+        try BackupService.importData(data, into: context, settingsDefaults: makeDefaults())
+        #expect(try context.fetchCount(FetchDescriptor<ActionEcho>()) == backup.actionEchoes.count)
+    }
+
     @Test func rejectsBackupFromANewerFormat() throws {
         let future = MemoryEchoBackup(
             version: MemoryEchoBackup.currentVersion + 1,
