@@ -1,15 +1,20 @@
 name: CodeQL
 
-# Swift analysis has to build the project, so it needs a macOS runner and takes
-# far longer than the lint job. It therefore runs on merges to main and on a
-# weekly schedule rather than on every PR — findings land in the Security tab
-# instead of gating the merge.
+# Two jobs with very different costs. Swift analysis has to build the project,
+# so it needs a macOS runner and takes far longer than the lint job: it runs on
+# merges to main and on a weekly schedule, and its findings land in the
+# Security tab instead of gating the merge. The workflow files and the JS under
+# mocks/ analyze without a build, so that job is cheap enough to run on every
+# PR as well.
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   schedule:
     # Mondays, 09:17 UTC. Off the hour so it isn't queued with everyone else's
-    # top-of-hour cron jobs.
+    # top-of-hour cron jobs. The schedule matters even with PR runs: it
+    # re-analyzes existing code against newly published queries.
     - cron: '17 9 * * 1'
   workflow_dispatch:
 
@@ -17,12 +22,14 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  analyze:
+  analyze-swift:
     name: Analyze Swift
+    # Too slow for a PR check; see the note at the top.
+    if: github.event_name != 'pull_request'
     # Matches the runner in test.yml: MemoryEcho targets the iOS 26 SDK, which
     # needs Xcode 26. Keep these two in step.
     runs-on: macos-26
@@ -70,3 +77,38 @@ jobs:
         uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4
         with:
           category: /language:swift
+
+  analyze:
+    name: Analyze ${{ matrix.language }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The workflows under .github/workflows: script injection, missing
+          # permissions blocks, unpinned actions and the like.
+          - language: actions
+            build-mode: none
+          # The design mocks under mocks/. They don't ship in the app, but
+          # they're public code in the repo all the same.
+          - language: javascript-typescript
+            build-mode: none
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4
+        with:
+          category: /language:${{ matrix.language }}
