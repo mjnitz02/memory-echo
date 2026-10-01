@@ -16,6 +16,8 @@ struct MemoryEchoApp: App {
     /// reads the same store (see MemoryEchoCore.MemoryEchoStore).
     let sharedModelContainer = MemoryEchoStore.shared
 
+    @Environment(\.scenePhase) private var scenePhase
+
     var body: some Scene {
         WindowGroup {
             RootView()
@@ -26,6 +28,13 @@ struct MemoryEchoApp: App {
                     // memories don't accumulate in the store.
                     try? StoreMaintenance.purgeCompleted(in: context)
                     syncSettings(in: context)
+                }
+                .onChange(of: scenePhase, initial: true) { _, phase in
+                    switch phase {
+                    case .background: SuspensionGuard.shared.didEnterBackground()
+                    case .active: SuspensionGuard.shared.didBecomeActive()
+                    default: break
+                    }
                 }
         }
         .modelContainer(sharedModelContainer)
