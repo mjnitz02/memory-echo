@@ -95,7 +95,8 @@ jobs:
           - language: actions
             build-mode: none
           # The design mocks under mocks/. They don't ship in the app, but
-          # they're public code in the repo all the same.
+          # they're public code in the repo all the same. The generated
+          # bundles are excluded; see the config file.
           - language: javascript-typescript
             build-mode: none
 
@@ -107,6 +108,10 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
+          # paths-ignore for the generated mock bundles. It's shared by both
+          # languages in the matrix rather than set per-entry: the paths it
+          # names hold no workflow files, so it's a no-op for actions.
+          config-file: .github/codeql/codeql-config.yml
 
       - name: Perform CodeQL analysis
         uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4
