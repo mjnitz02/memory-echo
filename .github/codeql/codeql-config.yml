@@ -1,0 +1,23 @@
+name: MemoryEcho CodeQL config
+
+# Excluded from analysis. Only applies to languages analyzed without a build
+# (javascript-typescript, actions) — the Swift job builds, so it ignores this.
+paths-ignore:
+  # Self-extracting bundles, generated from the *.dc.html sources next to
+  # them. Each inlines its whole payload as base64 in a <script> tag and
+  # unpacks it at load time, so there is no hand-written code in here to
+  # review: the sources, support.js and ios-frame.jsx are the real thing and
+  # stay in scope.
+  #
+  # The loader trips js/xss-through-dom at its DOMParser call, reading the
+  # template out of a <script type="__bundler/template"> block in the same
+  # file. CodeQL counts that as untrusted DOM text; it's a string literal the
+  # bundler wrote, and nothing on the path reaches the network, the URL or
+  # postMessage.
+  #
+  # Listed by name rather than as mocks/*.html: `*` matches dots, so the glob
+  # would take the .dc.html sources with it, and paths-ignore has no way to
+  # add them back (`!` is matched literally, not as a negation). A new bundle
+  # needs a new line here.
+  - 'mocks/MemoryEcho.html'
+  - 'mocks/MemoryEcho Add.html'

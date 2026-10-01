@@ -1,9 +1,17 @@
 name: Dependabot auto-merge
 
 # Turns on GitHub's native auto-merge for Dependabot PRs. This workflow doesn't
-# merge anything itself: GitHub does, and only once branch protection is
-# satisfied — the required checks (lint + unit tests) are green and the branch
-# is up to date with main. A red PR just sits open like it always did.
+# merge anything itself: GitHub does, and only once the `main` ruleset is
+# satisfied — the required checks (lint, unit tests, and the two CodeQL jobs
+# that run on PRs) are green. A red PR just sits open like it always did.
+#
+# The ruleset deliberately does not require the branch to be up to date with
+# main: with that on, two Dependabot PRs open at once leave the second one
+# stranded behind the first until Dependabot's next weekly run.
+#
+# A merge made on behalf of GITHUB_TOKEN does not fire `push` workflows, so the
+# UI tests and the Swift CodeQL job do not run on main after these merges.
+# CodeQL's weekly schedule covers main.
 on: pull_request
 
 permissions: {}
