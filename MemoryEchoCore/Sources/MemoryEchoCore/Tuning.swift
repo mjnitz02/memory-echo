@@ -82,6 +82,11 @@ public enum Tuning {
     /// both the app and the widget, since they share one store.
     public static let cloudKitContainerID = "iCloud.org.mattnitzken.MemoryEcho"
 
+    /// How long the store must stay quiet after backgrounding before the app
+    /// lets itself be suspended (see SuspensionGuard). Has to outlast the gap
+    /// between a save and the CloudKit export it queues.
+    public static let backgroundSettleSeconds: Double = 3
+
     // MARK: Widget (user-tunable via WidgetSettings)
 
     /// How many memories any memory-showing widget lists — user-set within this
