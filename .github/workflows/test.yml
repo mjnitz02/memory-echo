@@ -73,5 +73,8 @@ jobs:
             sudo xcodebuild -downloadPlatform iOS
           fi
 
+      # UI_TEST_ITERATIONS opts this run into xcodebuild's retry-on-failure (see
+      # the Makefile): a flaky simulator launch gets a second attempt instead of
+      # failing the merge, while a real regression still fails both.
       - name: Run UI tests
-        run: make test-ui
+        run: make test-ui UI_TEST_ITERATIONS=2
