@@ -20,6 +20,16 @@ SIMULATOR_NAME ?= iPhone 17
 # of the same simulator.
 DESTINATION    ?= platform=iOS Simulator,name=$(SIMULATOR_NAME),arch=arm64
 
+# XCUITests drive a booted simulator, so a single failure is as often the runner
+# having a bad minute as it is a real regression — a cold first launch on a
+# loaded runner has timed out on its own. `-retry-tests-on-failure` re-runs only
+# the tests that failed and lets the run pass if the retry passes; a genuinely
+# broken test still fails every attempt, so this hides flake without hiding
+# regressions. Empty by default so a local run reports the first failure
+# straight away — CI opts in.
+UI_TEST_ITERATIONS ?=
+UI_RETRY_FLAGS     := $(if $(UI_TEST_ITERATIONS),-retry-tests-on-failure -test-iterations $(UI_TEST_ITERATIONS),)
+
 # On-device deploy (paid Apple Developer Program membership). Profiles are good
 # for a year, so `make deploy` is only needed when you want new code on the
 # phone — plugged in, or paired over Wi-Fi. DEVICE_ID comes from
@@ -206,7 +216,8 @@ test-ui:
 	set -o pipefail; $(XCODEBUILD) test \
 		-project $(PROJECT) -scheme $(SCHEME) \
 		-destination '$(DESTINATION)' \
-		-only-testing:$(UI_TARGET) $(FORMATTER)
+		-only-testing:$(UI_TARGET) \
+		$(UI_RETRY_FLAGS) $(FORMATTER)
 
 ## test-all: run unit + UI tests together
 .PHONY: test-all
