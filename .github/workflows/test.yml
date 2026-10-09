@@ -22,9 +22,11 @@ jobs:
   # Fast, reliable gate: the Swift Testing unit suite must pass.
   unit:
     name: Unit tests
-    # MemoryEcho targets the iOS 26 SDK, which needs Xcode 26 (macOS 26).
-    # Adjust this label if the runner image isn't available yet.
-    runs-on: macos-26
+    # MemoryEcho builds against the iOS 27 SDK (the widget uses
+    # `.systemExtraLargePortrait`, which the iOS 26 SDK marks unavailable), so
+    # it needs Xcode 27. `xcode-27` is the only hosted image that carries it;
+    # macos-26 tops out at Xcode 26.
+    runs-on: xcode-27
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -33,7 +35,7 @@ jobs:
         with:
           xcode-version: latest-stable
 
-      # The macos-26 runner image intermittently ships Xcode without the
+      # The macOS runner images intermittently ship Xcode without the
       # matching iOS Simulator runtime pre-installed (see
       # https://github.com/actions/runner-images/issues/13220), which makes
       # xcodebuild report zero concrete simulator destinations. Fetch the
@@ -55,7 +57,7 @@ jobs:
   ui:
     name: UI tests
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: macos-26
+    runs-on: xcode-27
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
