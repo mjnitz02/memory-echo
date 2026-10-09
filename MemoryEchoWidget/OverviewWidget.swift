@@ -134,6 +134,17 @@ struct OverviewWidget: Widget {
         }
         .configurationDisplayName("Overview")
         .description("Memories and echoes together, like the app at a glance.")
-        .supportedFamilies([.systemExtraLarge])
+        .supportedFamilies(families)
+    }
+
+    /// `.systemExtraLarge` is the landscape iPad size, which an iPhone never
+    /// offers; the portrait variant is the extra-large size iPhone gained in
+    /// iOS 27.
+    private var families: [WidgetFamily] {
+        if #available(iOS 27.0, *) {
+            [.systemExtraLarge, .systemExtraLargePortrait]
+        } else {
+            [.systemExtraLarge]
+        }
     }
 }

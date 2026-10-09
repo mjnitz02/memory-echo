@@ -30,9 +30,9 @@ jobs:
     name: Analyze Swift
     # Too slow for a PR check; see the note at the top.
     if: github.event_name != 'pull_request'
-    # Matches the runner in test.yml: MemoryEcho targets the iOS 26 SDK, which
-    # needs Xcode 26. Keep these two in step.
-    runs-on: macos-26
+    # Matches the runner in test.yml: MemoryEcho builds against the iOS 27 SDK,
+    # which needs Xcode 27. Keep these two in step.
+    runs-on: xcode-27
     timeout-minutes: 60
     permissions:
       # Uploading results to the Security tab needs write here; everything
